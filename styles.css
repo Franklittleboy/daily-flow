@@ -1,0 +1,397 @@
+.daily-flow-root {
+  height: 100%;
+  overflow: hidden;
+}
+
+.daily-flow-shell {
+  display: grid;
+  grid-template-columns: 56px minmax(180px, 240px) minmax(0, 1fr);
+  height: 100%;
+  color: var(--text-normal);
+  background: var(--background-primary);
+}
+
+.daily-flow-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 8px;
+  border-right: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.daily-flow-icon-button,
+.daily-flow-text-button,
+.daily-flow-primary-button,
+.daily-flow-danger-button,
+.daily-flow-nav-item,
+.daily-flow-task-body,
+.daily-flow-day-cell,
+.daily-flow-week-date,
+.daily-flow-week-task {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.daily-flow-icon-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.daily-flow-icon-button:hover,
+.daily-flow-icon-button.is-active {
+  color: white;
+  background: #5472f4;
+}
+
+.daily-flow-middle {
+  padding: 22px 14px;
+  border-right: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.daily-flow-middle-title {
+  margin: 0 0 18px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.daily-flow-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  color: var(--text-normal);
+  background: transparent;
+  text-align: left;
+}
+
+.daily-flow-nav-item:hover,
+.daily-flow-nav-item.is-active {
+  background: var(--background-modifier-hover);
+}
+
+.daily-flow-count {
+  color: var(--text-muted);
+}
+
+.daily-flow-main {
+  min-width: 0;
+  overflow: auto;
+  padding: 22px 28px;
+}
+
+.daily-flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.daily-flow-header h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.daily-flow-header-actions,
+.daily-flow-focus-controls,
+.daily-flow-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.daily-flow-select,
+.daily-flow-input {
+  min-height: 34px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  color: var(--text-normal);
+  background: var(--background-primary);
+}
+
+.daily-flow-text-button,
+.daily-flow-primary-button,
+.daily-flow-danger-button {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+}
+
+.daily-flow-text-button {
+  color: var(--text-normal);
+  background: var(--background-secondary);
+}
+
+.daily-flow-primary-button {
+  color: white;
+  background: #5472f4;
+}
+
+.daily-flow-danger-button {
+  color: white;
+  background: #d94c4c;
+}
+
+.daily-flow-task-group {
+  margin-bottom: 22px;
+}
+
+.daily-flow-task-group h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.daily-flow-task-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.daily-flow-check {
+  width: 16px;
+  height: 16px;
+}
+
+.daily-flow-task-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 6px 0;
+  color: var(--text-normal);
+  background: transparent;
+  text-align: left;
+}
+
+.daily-flow-task-title,
+.daily-flow-task-meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-flow-task-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.daily-flow-empty {
+  color: var(--text-faint);
+}
+
+.daily-flow-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(92px, 1fr));
+  grid-auto-rows: minmax(118px, 1fr);
+  border-top: 1px solid var(--background-modifier-border);
+  border-left: 1px solid var(--background-modifier-border);
+}
+
+.daily-flow-weekday {
+  min-height: 32px;
+  padding: 8px;
+  border-right: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.daily-flow-day-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border-right: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  background: transparent;
+  text-align: left;
+}
+
+.daily-flow-day-cell:hover {
+  background: var(--background-modifier-hover);
+}
+
+.daily-flow-day-cell.is-muted {
+  color: var(--text-faint);
+}
+
+.daily-flow-day-cell.is-today .daily-flow-day-number {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: white;
+  background: #5472f4;
+}
+
+.daily-flow-calendar-task,
+.daily-flow-week-task {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #1f2a44;
+  background: #91a6f8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-flow-more {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.daily-flow-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.daily-flow-week-column {
+  min-height: 420px;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.daily-flow-week-date {
+  width: 100%;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+  background: transparent;
+  text-align: left;
+}
+
+.daily-flow-week-task {
+  width: 100%;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.daily-flow-focus-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(300px, 420px);
+  gap: 28px;
+}
+
+.daily-flow-focus-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 640px;
+  gap: 28px;
+}
+
+.daily-flow-focus-select {
+  min-width: 260px;
+}
+
+.daily-flow-focus-ring {
+  display: grid;
+  place-items: center;
+  width: min(52vw, 360px);
+  aspect-ratio: 1;
+  border: 7px solid var(--background-modifier-border);
+  border-radius: 50%;
+}
+
+.daily-flow-focus-time {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.daily-flow-focus-history {
+  padding-left: 26px;
+  border-left: 1px solid var(--background-modifier-border);
+}
+
+.daily-flow-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.daily-flow-stat {
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+
+.daily-flow-stat span,
+.daily-flow-focus-record span {
+  display: block;
+  color: var(--text-muted);
+}
+
+.daily-flow-stat strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 28px;
+}
+
+.daily-flow-focus-record {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.daily-flow-modal .daily-flow-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+.daily-flow-modal textarea.daily-flow-input {
+  min-height: 100px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.daily-flow-modal input.daily-flow-input {
+  padding: 0 8px;
+}
+
+@media (max-width: 900px) {
+  .daily-flow-shell {
+    grid-template-columns: 48px minmax(150px, 190px) minmax(0, 1fr);
+  }
+
+  .daily-flow-focus-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-flow-focus-history {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .daily-flow-month-grid,
+  .daily-flow-week {
+    min-width: 760px;
+  }
+}

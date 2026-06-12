@@ -1,0 +1,9 @@
+{
+  "id": "daily-flow",
+  "name": "DailyFlow",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Local task calendar and focus timer for Obsidian.",
+  "author": "Frank",
+  "isDesktopOnly": false
+}
