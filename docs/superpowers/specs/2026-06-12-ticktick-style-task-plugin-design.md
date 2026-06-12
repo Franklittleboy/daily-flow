@@ -1,4 +1,4 @@
-# TickTick-Style Task Plugin Design
+# DailyFlow Plugin Design
 
 Date: 2026-06-12
 Status: Approved for implementation planning
@@ -9,6 +9,8 @@ Build an Obsidian community plugin that provides a lightweight TickTick-like tas
 
 ## Key Assumptions
 
+- The public plugin name is DailyFlow.
+- The Obsidian plugin ID is `daily-flow`.
 - Tasks are stored in the plugin's own data store, not as Markdown task lines.
 - The first release is local-first and does not include account sync, collaboration, reminders, or mobile-specific behavior.
 - The plugin should be implemented with TypeScript and Obsidian's native plugin APIs, using custom lightweight UI rather than a full frontend framework.
@@ -195,6 +197,5 @@ Release verification:
 
 ## Open Decisions Before Implementation
 
-- Final plugin name and plugin ID.
 - GitHub repository owner/name.
 - Whether the first beta should be distributed manually or through BRAT before community submission.
