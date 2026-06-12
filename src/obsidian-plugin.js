@@ -47,6 +47,9 @@ class DailyFlowView extends ItemView {
     this.taskFilter = "inbox";
     this.calendarMode = "month";
     this.anchorDate = new Date();
+    this.activeTaskDetailId = null;
+    this.detailDatePickerOpen = false;
+    this.detailPickerAnchorDate = new Date();
     this.focus = {
       taskId: null,
       running: false,
@@ -113,6 +116,7 @@ class DailyFlowView extends ItemView {
       const button = createButton(icon, label, this.section === section);
       button.addEventListener("click", () => {
         this.section = section;
+        this.activeTaskDetailId = null;
         this.render();
       });
       rail.appendChild(button);
@@ -149,6 +153,7 @@ class DailyFlowView extends ItemView {
       }
       item.addEventListener("click", () => {
         this.section = section;
+        this.activeTaskDetailId = null;
         if (section === "tasks") {
           this.taskFilter = filter;
         }
@@ -311,6 +316,7 @@ class DailyFlowView extends ItemView {
     } else {
       this.renderWeek(main);
     }
+    this.renderTaskDetail(main);
   }
 
   renderMonth(main) {
@@ -354,7 +360,7 @@ class DailyFlowView extends ItemView {
         const bar = createEl("button", "daily-flow-calendar-task", task.title);
         bar.addEventListener("click", (event) => {
           event.stopPropagation();
-          this.openTaskModal(task);
+          this.openTaskDetail(task);
         });
         day.appendChild(bar);
       }
@@ -382,7 +388,7 @@ class DailyFlowView extends ItemView {
       }
       for (const task of tasks) {
         const taskButton = createEl("button", "daily-flow-week-task", task.title);
-        taskButton.addEventListener("click", () => this.openTaskModal(task));
+        taskButton.addEventListener("click", () => this.openTaskDetail(task));
         column.appendChild(taskButton);
       }
       const add = createEl("button", "daily-flow-week-add", "+ Add task");
@@ -486,6 +492,181 @@ class DailyFlowView extends ItemView {
         this.render();
       }
     }).open();
+  }
+
+  openTaskDetail(task) {
+    if (!task?.id) {
+      return;
+    }
+    this.activeTaskDetailId = task.id;
+    this.detailDatePickerOpen = false;
+    this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || new Date();
+    this.render();
+  }
+
+  renderTaskDetail(main) {
+    if (!this.activeTaskDetailId) {
+      return;
+    }
+    const task = this.plugin.data.tasks.find((item) => item.id === this.activeTaskDetailId);
+    if (!task) {
+      this.activeTaskDetailId = null;
+      this.detailDatePickerOpen = false;
+      return;
+    }
+
+    const layer = createEl("div", "daily-flow-detail-layer");
+    layer.addEventListener("click", (event) => {
+      if (event.target === layer) {
+        this.activeTaskDetailId = null;
+        this.detailDatePickerOpen = false;
+        this.render();
+      }
+    });
+
+    const card = createEl("section", "daily-flow-detail-card");
+    card.addEventListener("click", (event) => event.stopPropagation());
+
+    const header = createEl("div", "daily-flow-detail-header");
+    const checkbox = createEl("input", "daily-flow-detail-check");
+    checkbox.type = "checkbox";
+    checkbox.checked = task.completed;
+    checkbox.addEventListener("change", async () => {
+      await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
+      this.render();
+    });
+    header.appendChild(checkbox);
+    header.appendChild(createEl("span", "daily-flow-detail-separator", ""));
+
+    const date = createEl("button", "daily-flow-detail-date", this.taskDetailDateLabel(task));
+    date.addEventListener("click", () => {
+      this.detailDatePickerOpen = !this.detailDatePickerOpen;
+      this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || new Date();
+      this.render();
+    });
+    header.appendChild(date);
+    header.appendChild(createEl("span", "daily-flow-detail-flag", "⚐"));
+    card.appendChild(header);
+
+    const title = createEl("input", "daily-flow-detail-title");
+    title.type = "text";
+    title.value = task.title;
+    title.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        title.blur();
+      } else if (event.key === "Escape") {
+        title.value = task.title;
+        title.blur();
+      }
+    });
+    title.addEventListener("blur", async () => {
+      const nextTitle = title.value.trim();
+      if (nextTitle && nextTitle !== task.title) {
+        try {
+          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { title: nextTitle }));
+          this.render();
+        } catch (error) {
+          new Notice(error.message || "Could not save task.");
+        }
+      }
+    });
+    card.appendChild(title);
+
+    if (this.detailDatePickerOpen) {
+      card.appendChild(this.renderDetailDatePicker(task));
+    }
+
+    const footer = createEl("div", "daily-flow-detail-footer");
+    footer.appendChild(createEl("span", "daily-flow-detail-list", "▣ Inbox"));
+    const close = createEl("button", "daily-flow-detail-close", "Done");
+    close.addEventListener("click", () => {
+      this.activeTaskDetailId = null;
+      this.detailDatePickerOpen = false;
+      this.render();
+    });
+    footer.appendChild(close);
+    card.appendChild(footer);
+
+    layer.appendChild(card);
+    main.appendChild(layer);
+  }
+
+  renderDetailDatePicker(task) {
+    const picker = createEl("div", "daily-flow-detail-date-picker");
+    const tabs = createEl("div", "daily-flow-date-picker-tabs");
+    tabs.appendChild(createEl("span", "is-active", "Date"));
+    picker.appendChild(tabs);
+
+    const monthHeader = createEl("div", "daily-flow-date-picker-header");
+    monthHeader.appendChild(createEl("strong", "", `${this.detailPickerAnchorDate.getFullYear()}-${String(this.detailPickerAnchorDate.getMonth() + 1).padStart(2, "0")}`));
+    const controls = createEl("div", "daily-flow-date-picker-controls");
+    const previous = createEl("button", "daily-flow-date-picker-nav", "‹");
+    previous.addEventListener("click", () => {
+      const next = new Date(this.detailPickerAnchorDate);
+      next.setMonth(next.getMonth() - 1);
+      this.detailPickerAnchorDate = next;
+      this.render();
+    });
+    const next = createEl("button", "daily-flow-date-picker-nav", "›");
+    next.addEventListener("click", () => {
+      const nextMonth = new Date(this.detailPickerAnchorDate);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      this.detailPickerAnchorDate = nextMonth;
+      this.render();
+    });
+    controls.appendChild(previous);
+    controls.appendChild(next);
+    monthHeader.appendChild(controls);
+    picker.appendChild(monthHeader);
+
+    const grid = createEl("div", "daily-flow-date-picker-grid");
+    for (const day of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
+      grid.appendChild(createEl("span", "daily-flow-date-picker-weekday", day));
+    }
+    const cells = core.getMonthGrid(
+      this.detailPickerAnchorDate.getFullYear(),
+      this.detailPickerAnchorDate.getMonth(),
+      this.plugin.data.settings.weekStartsOn
+    );
+    for (const cell of cells) {
+      const day = createEl("button", "daily-flow-date-picker-day");
+      day.textContent = String(Number(cell.date.slice(8, 10)));
+      if (!cell.inMonth) {
+        day.addClass("is-muted");
+      }
+      if (task.dueDate === cell.date) {
+        day.addClass("is-selected");
+      }
+      day.addEventListener("click", async () => {
+        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { dueDate: cell.date }));
+        this.detailDatePickerOpen = false;
+        this.detailPickerAnchorDate = core.parseLocalDate(cell.date) || this.detailPickerAnchorDate;
+        this.render();
+      });
+      grid.appendChild(day);
+    }
+    picker.appendChild(grid);
+
+    const actions = createEl("div", "daily-flow-date-picker-actions");
+    const clear = createEl("button", "daily-flow-date-picker-clear", "Clear");
+    clear.addEventListener("click", async () => {
+      await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { dueDate: null }));
+      this.detailDatePickerOpen = false;
+      this.render();
+    });
+    actions.appendChild(clear);
+    picker.appendChild(actions);
+    return picker;
+  }
+
+  taskDetailDateLabel(task) {
+    if (!task.dueDate) {
+      return "No date";
+    }
+    if (core.isToday(task.dueDate)) {
+      return `Today, ${task.dueDate.slice(5)}`;
+    }
+    return task.dueDate;
   }
 
   defaultDueDateForFilter() {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.8 - 2026-06-12
+
+Added a TickTick-like calendar task detail popover.
+
+- Month and week task clicks now open an in-calendar detail card instead of the generic edit modal.
+- Added a completion checkbox in the detail card to switch tasks between todo and done.
+- Added a clickable date chip with a lightweight date picker for changing the task date.
+- Kept extra task options out of the first version so the interaction stays focused.
+
 ## 0.1.7 - 2026-06-12
 
 Removed remaining Obsidian button chrome from the DailyFlow workspace.

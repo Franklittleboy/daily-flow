@@ -26,9 +26,25 @@ test("month view renders readable task buttons inside date cells", () => {
 
   assert.match(source, /daily-flow-day-top/);
   assert.match(source, /createEl\("button", "daily-flow-calendar-task"/);
+  assert.match(source, /this\.openTaskDetail\(task\)/);
   assert.match(source, /event\.stopPropagation\(\)/);
   assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*min-height:\s*22px/s);
   assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*font-weight:\s*600/s);
+});
+
+test("calendar task detail popover supports completion and date picking", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /openTaskDetail\(task\)/);
+  assert.match(source, /renderTaskDetail\(main\)/);
+  assert.match(source, /daily-flow-detail-check/);
+  assert.match(source, /core\.completeTask\(this\.plugin\.data,\s*task\.id,\s*checkbox\.checked\)/);
+  assert.match(source, /daily-flow-detail-date-picker/);
+  assert.match(source, /renderDetailDatePicker\(task\)/);
+  assert.match(source, /core\.updateTask\(this\.plugin\.data,\s*task\.id,\s*\{\s*dueDate:/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*box-shadow:\s*0 18px 48px/s);
+  assert.match(styles, /\.daily-flow-date-picker-grid\s*{[^}]*grid-template-columns:\s*repeat\(7,\s*1fr\)/s);
 });
 
 test("task list rows use a single readable line with right-side date", () => {

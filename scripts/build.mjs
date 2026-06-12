@@ -34,6 +34,6 @@ writeFileSync("main.js", bundle);
 function indent(source) {
   return source
     .split("\n")
-    .map((line) => `  ${line}`)
+    .map((line) => (line ? `  ${line}` : ""))
     .join("\n");
 }
