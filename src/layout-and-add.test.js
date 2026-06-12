@@ -41,3 +41,13 @@ test("task list rows use a single readable line with right-side date", () => {
   assert.match(styles, /\.daily-flow-task-title\s*{[^}]*white-space:\s*normal/s);
   assert.match(styles, /\.daily-flow-task-date\s*{[^}]*justify-self:\s*end/s);
 });
+
+test("visual chrome stays light and TickTick-like", () => {
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(styles, /--daily-flow-line:\s*rgba\(142,\s*149,\s*166,\s*0\.16\)/);
+  assert.match(styles, /\.daily-flow-rail\s*{[^}]*background:\s*var\(--background-primary\)/s);
+  assert.match(styles, /\.daily-flow-middle\s*{[^}]*border-left:\s*1px solid var\(--daily-flow-line\)/s);
+  assert.match(styles, /\.daily-flow-task-row\s*{[^}]*border-bottom:\s*1px solid var\(--daily-flow-line\)/s);
+  assert.match(styles, /\.daily-flow-week-column\s*{[^}]*border:\s*0/s);
+});

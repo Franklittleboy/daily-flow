@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.6 - 2026-06-12
+
+Refined the visual style to be closer to TickTick.
+
+- Replaced heavier Obsidian-style borders with lighter DailyFlow divider tokens.
+- Flattened the right-side navigation and task list chrome for a cleaner TickTick-like surface.
+- Softened calendar and week view grid lines while keeping date cells easy to scan.
+- Unified blue task bars, selected states, hover states, and focus overview panels.
+
 ## 0.1.5 - 2026-06-12
 
 Improved task list readability.
