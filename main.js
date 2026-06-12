@@ -1,7 +1,7 @@
 /* DailyFlow Obsidian plugin */
 const obsidian = require("obsidian");
 
-const core = (() => {
+const dailyFlowCore = (() => {
   const module = { exports: {} };
   const exports = module.exports;
   const DEFAULT_SETTINGS = {
@@ -324,7 +324,7 @@ const pluginModule = (() => {
   const exports = module.exports;
   const require = (id) => {
     if (id === "obsidian") return obsidian;
-    if (id === "./core") return core;
+    if (id === "./core") return dailyFlowCore;
     throw new Error("Unsupported bundled require: " + id);
   };
   const { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("obsidian");
@@ -1037,3 +1037,4 @@ const pluginModule = (() => {
 })();
 
 module.exports = pluginModule;
+module.exports.default = pluginModule;

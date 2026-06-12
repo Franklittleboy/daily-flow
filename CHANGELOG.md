@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 - 2026-06-12
+
+Fixed the plugin bundle so Obsidian can load DailyFlow successfully.
+
+- Removed a bundled variable shadowing issue that caused `Cannot access 'core' before initialization`.
+- Added a smoke test that verifies the built `main.js` loads with an Obsidian API stub.
+- Added both CommonJS and `default` exports for better compatibility with Obsidian's plugin loader.
+
 ## 0.1.0 - 2026-06-12
 
 Initial DailyFlow MVP.

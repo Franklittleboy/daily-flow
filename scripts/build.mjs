@@ -6,7 +6,7 @@ const pluginSource = readFileSync("src/obsidian-plugin.js", "utf8");
 const bundle = `/* DailyFlow Obsidian plugin */
 const obsidian = require("obsidian");
 
-const core = (() => {
+const dailyFlowCore = (() => {
   const module = { exports: {} };
   const exports = module.exports;
 ${indent(coreSource)}
@@ -18,7 +18,7 @@ const pluginModule = (() => {
   const exports = module.exports;
   const require = (id) => {
     if (id === "obsidian") return obsidian;
-    if (id === "./core") return core;
+    if (id === "./core") return dailyFlowCore;
     throw new Error("Unsupported bundled require: " + id);
   };
 ${indent(pluginSource)}
@@ -26,6 +26,7 @@ ${indent(pluginSource)}
 })();
 
 module.exports = pluginModule;
+module.exports.default = pluginModule;
 `;
 
 writeFileSync("main.js", bundle);
