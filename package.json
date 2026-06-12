@@ -1,6 +1,6 @@
 {
   "name": "daily-flow",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A TickTick-like local task calendar and focus timer for Obsidian.",
   "main": "main.js",
   "scripts": {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 - 2026-06-12
+
+Fixed DailyFlow opening in Obsidian's right sidebar by default.
+
+- The ribbon icon and command now open DailyFlow in the main workspace as a full tab.
+- Added a regression test to keep the plugin from opening in the right sidebar again.
+
 ## 0.1.1 - 2026-06-12
 
 Fixed the plugin bundle so Obsidian can load DailyFlow successfully.

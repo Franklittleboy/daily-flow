@@ -28,7 +28,7 @@ class DailyFlowPlugin extends Plugin {
 
   async activateView() {
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DAILY_FLOW);
-    const leaf = leaves[0] || this.app.workspace.getRightLeaf(false);
+    const leaf = leaves[0] || this.app.workspace.getLeaf(true);
     await leaf.setViewState({ type: VIEW_TYPE_DAILY_FLOW, active: true });
     this.app.workspace.revealLeaf(leaf);
   }
