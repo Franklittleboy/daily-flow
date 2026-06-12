@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 - 2026-06-12
+
+Improved month view readability.
+
+- Reworked month date cells into a clearer TickTick-like structure with a date header and full-width task bars.
+- Made month-view task bars clickable for editing existing tasks.
+- Kept direct date-cell task creation while preventing duplicate click handling.
+- Increased task bar contrast, height, and font weight for better scanning.
+
 ## 0.1.3 - 2026-06-12
 
 Improved the first-use layout and task creation affordances.

@@ -642,23 +642,41 @@ const pluginModule = (() => {
       );
   
       for (const cell of cells) {
-        const day = createEl("button", "daily-flow-day-cell");
+        const day = createEl("section", "daily-flow-day-cell");
         if (!cell.inMonth) {
           day.addClass("is-muted");
         }
         if (core.isToday(cell.date)) {
           day.addClass("is-today");
         }
-        day.appendChild(createEl("span", "daily-flow-day-number", String(Number(cell.date.slice(8, 10)))));
+  
+        const dayTop = createEl("div", "daily-flow-day-top");
+        const dayNumber = createEl("button", "daily-flow-day-number", String(Number(cell.date.slice(8, 10))));
+        dayNumber.addEventListener("click", (event) => {
+          event.stopPropagation();
+          this.openTaskModal({ dueDate: cell.date });
+        });
+        const add = createEl("button", "daily-flow-day-add", "+ Add");
+        add.addEventListener("click", (event) => {
+          event.stopPropagation();
+          this.openTaskModal({ dueDate: cell.date });
+        });
+        dayTop.appendChild(dayNumber);
+        dayTop.appendChild(add);
+        day.appendChild(dayTop);
+  
         const tasks = this.tasksForDate(cell.date);
         for (const task of tasks.slice(0, 4)) {
-          const bar = createEl("span", "daily-flow-calendar-task", task.title);
+          const bar = createEl("button", "daily-flow-calendar-task", task.title);
+          bar.addEventListener("click", (event) => {
+            event.stopPropagation();
+            this.openTaskModal(task);
+          });
           day.appendChild(bar);
         }
         if (tasks.length > 4) {
           day.appendChild(createEl("span", "daily-flow-more", `+${tasks.length - 4}`));
         }
-        day.appendChild(createEl("span", "daily-flow-day-add", "+ Add"));
         day.addEventListener("click", () => this.openTaskModal({ dueDate: cell.date }));
         grid.appendChild(day);
       }

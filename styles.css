@@ -240,9 +240,9 @@
 .daily-flow-day-cell {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
-  padding: 8px;
+  padding: 7px;
   border-right: 1px solid var(--background-modifier-border);
   border-bottom: 1px solid var(--background-modifier-border);
   color: var(--text-normal);
@@ -258,6 +258,33 @@
   color: var(--text-faint);
 }
 
+.daily-flow-day-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 26px;
+}
+
+.daily-flow-day-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-normal);
+  background: transparent;
+  font: inherit;
+  font-weight: 650;
+}
+
+.daily-flow-day-number:hover {
+  color: #5472f4;
+  background: rgba(84, 114, 244, 0.1);
+}
+
 .daily-flow-day-cell.is-today .daily-flow-day-number {
   display: inline-grid;
   place-items: center;
@@ -269,17 +296,46 @@
 }
 
 .daily-flow-day-add {
-  margin-top: auto;
-  padding: 2px 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 6px;
   color: var(--text-faint);
+  background: transparent;
+  font: inherit;
   font-size: 12px;
+  opacity: 0;
 }
 
 .daily-flow-day-cell:hover .daily-flow-day-add {
   color: #5472f4;
+  background: rgba(84, 114, 244, 0.1);
+  opacity: 1;
 }
 
-.daily-flow-calendar-task,
+.daily-flow-calendar-task {
+  display: block;
+  width: 100%;
+  min-height: 22px;
+  overflow: hidden;
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 5px;
+  color: #172033;
+  background: #8ea3f8;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: inset 2px 0 0 rgba(36, 64, 181, 0.48);
+}
+
+.daily-flow-calendar-task:hover {
+  background: #7890f4;
+}
+
 .daily-flow-week-task {
   display: block;
   overflow: hidden;

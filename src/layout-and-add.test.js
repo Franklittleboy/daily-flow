@@ -19,3 +19,14 @@ test("DailyFlow exposes direct add affordances beyond the header plus button", (
   assert.match(source, /daily-flow-day-add/);
   assert.match(source, /daily-flow-week-add/);
 });
+
+test("month view renders readable task buttons inside date cells", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /daily-flow-day-top/);
+  assert.match(source, /createEl\("button", "daily-flow-calendar-task"/);
+  assert.match(source, /event\.stopPropagation\(\)/);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*min-height:\s*22px/s);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*font-weight:\s*600/s);
+});
