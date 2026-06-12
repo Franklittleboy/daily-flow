@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.9 - 2026-06-12
+
+Adjusted calendar task colors by completion state.
+
+- Month and week task bars now show incomplete tasks in a deeper blue.
+- Completed calendar tasks remain visible and use a lighter blue-gray color.
+- Added a regression test so calendar task colors stay tied to task status.
+
 ## 0.1.8 - 2026-06-12
 
 Added a TickTick-like calendar task detail popover.

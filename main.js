@@ -687,6 +687,7 @@ const pluginModule = (() => {
         const tasks = this.tasksForDate(cell.date);
         for (const task of tasks.slice(0, 4)) {
           const bar = createEl("button", "daily-flow-calendar-task", task.title);
+          this.styleCalendarTask(bar, task);
           bar.addEventListener("click", (event) => {
             event.stopPropagation();
             this.openTaskDetail(task);
@@ -717,6 +718,7 @@ const pluginModule = (() => {
         }
         for (const task of tasks) {
           const taskButton = createEl("button", "daily-flow-week-task", task.title);
+          this.styleCalendarTask(taskButton, task);
           taskButton.addEventListener("click", () => this.openTaskDetail(task));
           column.appendChild(taskButton);
         }
@@ -1007,8 +1009,14 @@ const pluginModule = (() => {
 
     tasksForDate(date) {
       return this.plugin.data.tasks
-        .filter((task) => task.dueDate === date && (this.plugin.data.settings.showCompletedTasks || !task.completed))
+        .filter((task) => task.dueDate === date)
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
+
+    styleCalendarTask(button, task) {
+      if (task.completed) {
+        button.addClass("is-completed");
+      }
     }
 
     moveCalendar(direction) {

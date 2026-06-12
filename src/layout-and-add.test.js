@@ -47,6 +47,18 @@ test("calendar task detail popover supports completion and date picking", () => 
   assert.match(styles, /\.daily-flow-date-picker-grid\s*{[^}]*grid-template-columns:\s*repeat\(7,\s*1fr\)/s);
 });
 
+test("calendar task bars use deeper todo color and lighter completed color", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /styleCalendarTask\(bar,\s*task\)/);
+  assert.match(source, /styleCalendarTask\(taskButton,\s*task\)/);
+  assert.match(source, /task\.completed\)[^}]*button\.addClass\("is-completed"\)/s);
+  assert.match(styles, /--daily-flow-accent-bar:\s*#4f6ff2/);
+  assert.match(styles, /\.daily-flow-calendar-task\.is-completed,\s*\.daily-flow-week-task\.is-completed\s*{[^}]*background:\s*#d7defc/s);
+  assert.match(styles, /\.daily-flow-calendar-task\.is-completed,\s*\.daily-flow-week-task\.is-completed\s*{[^}]*color:\s*#7a8294/s);
+});
+
 test("task list rows use a single readable line with right-side date", () => {
   const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");

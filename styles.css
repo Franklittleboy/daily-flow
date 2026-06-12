@@ -1,8 +1,8 @@
 .daily-flow-root {
   --daily-flow-accent: #5472f4;
   --daily-flow-accent-soft: rgba(84, 114, 244, 0.1);
-  --daily-flow-accent-bar: #8fa2f6;
-  --daily-flow-accent-bar-hover: #7e94f4;
+  --daily-flow-accent-bar: #4f6ff2;
+  --daily-flow-accent-bar-hover: #4868ee;
   --daily-flow-line: rgba(142, 149, 166, 0.16);
   --daily-flow-line-strong: rgba(142, 149, 166, 0.24);
   --daily-flow-soft: rgba(142, 149, 166, 0.08);
@@ -357,7 +357,7 @@
   padding: 2px 7px;
   border: 0;
   border-radius: 5px;
-  color: #172033;
+  color: white;
   background: var(--daily-flow-accent-bar);
   font: inherit;
   font-size: 12px;
@@ -378,10 +378,22 @@
   max-width: 100%;
   padding: 2px 6px;
   border-radius: 4px;
-  color: #1f2a44;
+  color: white;
   background: var(--daily-flow-accent-bar);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.daily-flow-calendar-task.is-completed,
+.daily-flow-week-task.is-completed {
+  color: #7a8294;
+  background: #d7defc;
+  font-weight: 600;
+}
+
+.daily-flow-calendar-task.is-completed:hover,
+.daily-flow-week-task.is-completed:hover {
+  background: #cfd8fb;
 }
 
 .daily-flow-more {
