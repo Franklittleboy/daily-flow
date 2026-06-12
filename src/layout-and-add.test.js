@@ -30,3 +30,14 @@ test("month view renders readable task buttons inside date cells", () => {
   assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*min-height:\s*22px/s);
   assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*font-weight:\s*600/s);
 });
+
+test("task list rows use a single readable line with right-side date", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /daily-flow-task-date/);
+  assert.doesNotMatch(source, /daily-flow-task-meta/);
+  assert.match(styles, /grid-template-columns:\s*24px\s+minmax\(220px,\s*1fr\)\s+minmax\(96px,\s*auto\)\s+36px/);
+  assert.match(styles, /\.daily-flow-task-title\s*{[^}]*white-space:\s*normal/s);
+  assert.match(styles, /\.daily-flow-task-date\s*{[^}]*justify-self:\s*end/s);
+});

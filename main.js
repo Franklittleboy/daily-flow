@@ -596,11 +596,13 @@ const pluginModule = (() => {
   
       const body = createEl("button", "daily-flow-task-body");
       body.appendChild(createEl("span", "daily-flow-task-title", task.title));
-      const meta = [task.dueDate, task.note].filter(Boolean).join(" · ");
-      if (meta) {
-        body.appendChild(createEl("span", "daily-flow-task-meta", meta));
+      if (task.note) {
+        body.setAttribute("title", task.note);
       }
       body.addEventListener("click", () => this.openTaskModal(task));
+  
+      const date = createEl("button", "daily-flow-task-date", this.taskDateLabel(task));
+      date.addEventListener("click", () => this.openTaskModal(task));
   
       const timer = createButton("◎", "Focus on task", false);
       timer.addEventListener("click", () => {
@@ -612,8 +614,19 @@ const pluginModule = (() => {
   
       row.appendChild(checkbox);
       row.appendChild(body);
+      row.appendChild(date);
       row.appendChild(timer);
       return row;
+    }
+  
+    taskDateLabel(task) {
+      if (!task.dueDate) {
+        return "No date";
+      }
+      if (core.isToday(task.dueDate)) {
+        return "Today";
+      }
+      return task.dueDate.slice(5);
     }
   
     renderCalendar(main) {

@@ -164,10 +164,10 @@
 
 .daily-flow-task-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 36px;
+  grid-template-columns: 24px minmax(220px, 1fr) minmax(96px, auto) 36px;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
+  gap: 12px;
+  min-height: 48px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -177,27 +177,38 @@
 }
 
 .daily-flow-task-body {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: block;
   min-width: 0;
-  padding: 6px 0;
+  padding: 10px 0;
   color: var(--text-normal);
   background: transparent;
   text-align: left;
 }
 
-.daily-flow-task-title,
-.daily-flow-task-meta {
+.daily-flow-task-title {
+  display: block;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.daily-flow-task-date {
+  justify-self: end;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: var(--text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
   white-space: nowrap;
 }
 
-.daily-flow-task-meta {
-  font-size: 12px;
-  color: var(--text-muted);
+.daily-flow-task-date:hover {
+  color: #5472f4;
+  background: rgba(84, 114, 244, 0.1);
 }
 
 .daily-flow-empty {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 - 2026-06-12
+
+Improved task list readability.
+
+- Reworked Today, Next 7 Days, and Inbox task rows into a TickTick-like single-line layout.
+- Moved due date/status to a right-aligned date pill.
+- Stopped rendering note/date metadata as a forced second line so task titles have more room.
+- Preserved notes as hover text for quick reference.
+
 ## 0.1.4 - 2026-06-12
 
 Improved month view readability.
