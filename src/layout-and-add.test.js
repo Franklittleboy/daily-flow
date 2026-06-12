@@ -46,6 +46,8 @@ test("visual chrome stays light and TickTick-like", () => {
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
   assert.match(styles, /--daily-flow-line:\s*rgba\(142,\s*149,\s*166,\s*0\.16\)/);
+  assert.match(styles, /\.daily-flow-root button\s*{[^}]*box-shadow:\s*none/s);
+  assert.match(styles, /\.daily-flow-root button\s*{[^}]*appearance:\s*none/s);
   assert.match(styles, /\.daily-flow-rail\s*{[^}]*background:\s*var\(--background-primary\)/s);
   assert.match(styles, /\.daily-flow-middle\s*{[^}]*border-left:\s*1px solid var\(--daily-flow-line\)/s);
   assert.match(styles, /\.daily-flow-task-row\s*{[^}]*border-bottom:\s*1px solid var\(--daily-flow-line\)/s);

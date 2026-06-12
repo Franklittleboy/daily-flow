@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7 - 2026-06-12
+
+Removed remaining Obsidian button chrome from the DailyFlow workspace.
+
+- Reset default button shadows and native appearance inside DailyFlow.
+- Kept task rows, right navigation, date pills, and add controls visually flat.
+
 ## 0.1.6 - 2026-06-12
 
 Refined the visual style to be closer to TickTick.

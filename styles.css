@@ -19,6 +19,15 @@
   background: var(--background-primary);
 }
 
+.daily-flow-root button {
+  appearance: none;
+  box-shadow: none;
+}
+
+.daily-flow-root button:hover {
+  box-shadow: none;
+}
+
 .daily-flow-rail {
   grid-column: 2;
   display: flex;
