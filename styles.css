@@ -5,18 +5,20 @@
 
 .daily-flow-shell {
   display: grid;
-  grid-template-columns: 56px minmax(180px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 56px minmax(180px, 240px);
   height: 100%;
   color: var(--text-normal);
   background: var(--background-primary);
 }
 
 .daily-flow-rail {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   padding: 18px 8px;
+  border-left: 1px solid var(--background-modifier-border);
   border-right: 1px solid var(--background-modifier-border);
   background: var(--background-secondary);
 }
@@ -26,10 +28,12 @@
 .daily-flow-primary-button,
 .daily-flow-danger-button,
 .daily-flow-nav-item,
+.daily-flow-add-task-row,
 .daily-flow-task-body,
 .daily-flow-day-cell,
 .daily-flow-week-date,
-.daily-flow-week-task {
+.daily-flow-week-task,
+.daily-flow-week-add {
   border: 0;
   font: inherit;
   cursor: pointer;
@@ -52,8 +56,8 @@
 }
 
 .daily-flow-middle {
+  grid-column: 3;
   padding: 22px 14px;
-  border-right: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
 }
 
@@ -87,6 +91,8 @@
 }
 
 .daily-flow-main {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   overflow: auto;
   padding: 22px 28px;
@@ -198,6 +204,22 @@
   color: var(--text-faint);
 }
 
+.daily-flow-add-task-row {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  background: transparent;
+  text-align: left;
+}
+
+.daily-flow-add-task-row:hover {
+  color: #5472f4;
+  background: var(--background-modifier-hover);
+}
+
 .daily-flow-month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(92px, 1fr));
@@ -246,6 +268,17 @@
   background: #5472f4;
 }
 
+.daily-flow-day-add {
+  margin-top: auto;
+  padding: 2px 0;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.daily-flow-day-cell:hover .daily-flow-day-add {
+  color: #5472f4;
+}
+
 .daily-flow-calendar-task,
 .daily-flow-week-task {
   display: block;
@@ -289,6 +322,21 @@
   width: 100%;
   margin-bottom: 6px;
   text-align: left;
+}
+
+.daily-flow-week-add {
+  width: 100%;
+  min-height: 32px;
+  margin-top: 8px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  text-align: left;
+}
+
+.daily-flow-week-add:hover {
+  color: #5472f4;
+  background: var(--background-modifier-hover);
 }
 
 .daily-flow-focus-layout {
@@ -378,7 +426,7 @@
 
 @media (max-width: 900px) {
   .daily-flow-shell {
-    grid-template-columns: 48px minmax(150px, 190px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 48px minmax(150px, 190px);
   }
 
   .daily-flow-focus-layout {

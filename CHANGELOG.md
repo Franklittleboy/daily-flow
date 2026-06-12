@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 - 2026-06-12
+
+Improved the first-use layout and task creation affordances.
+
+- Moved DailyFlow navigation back to the right side while keeping the main task/calendar content visible in the primary workspace.
+- Added direct add-task affordances in task lists, month calendar cells, and week view columns.
+
 ## 0.1.2 - 2026-06-12
 
 Fixed DailyFlow opening in Obsidian's right sidebar by default.

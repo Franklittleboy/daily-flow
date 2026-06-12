@@ -510,6 +510,8 @@ const pluginModule = (() => {
         this.renderTaskGroup(main, label, tasks);
       }
   
+      main.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
+  
       if (this.plugin.data.settings.showCompletedTasks) {
         this.renderTaskGroup(main, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
       }
@@ -574,6 +576,12 @@ const pluginModule = (() => {
       }
   
       container.appendChild(section);
+    }
+  
+    renderAddTaskRow(dueDate) {
+      const row = createEl("button", "daily-flow-add-task-row", "+ Add task");
+      row.addEventListener("click", () => this.openTaskModal({ dueDate }));
+      return row;
     }
   
     renderTaskRow(task) {
@@ -650,6 +658,7 @@ const pluginModule = (() => {
         if (tasks.length > 4) {
           day.appendChild(createEl("span", "daily-flow-more", `+${tasks.length - 4}`));
         }
+        day.appendChild(createEl("span", "daily-flow-day-add", "+ Add"));
         day.addEventListener("click", () => this.openTaskModal({ dueDate: cell.date }));
         grid.appendChild(day);
       }
@@ -674,6 +683,9 @@ const pluginModule = (() => {
           taskButton.addEventListener("click", () => this.openTaskModal(task));
           column.appendChild(taskButton);
         }
+        const add = createEl("button", "daily-flow-week-add", "+ Add task");
+        add.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
+        column.appendChild(add);
         week.appendChild(column);
       }
   
