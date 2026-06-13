@@ -79,6 +79,7 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
+  Status 2026-06-13: local release-prep pass completed in `.worktrees/release-polish`. Added `release-notes/0.1.10.md`; tests, syntax check, and build pass locally. No GitHub push, tag, or Release was created.
   Only after the feature batch is approved: merge branches, update changelog/release notes, build, tag, push, and create GitHub Release.
 
 ## Rules For Feature Sessions
