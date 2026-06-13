@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.10 - 2026-06-13
+
+Draft local focus page redesign.
+
+- Removed the middle icon rail so navigation only appears in the right sidebar.
+- Reworked the focus page toward TickTick's pomodoro layout with mode tabs, a large central timer, overview cards, and focus history.
+- Added stopwatch mode while preserving the existing pomodoro countdown flow.
+
 ## 0.1.9 - 2026-06-12
 
 Adjusted calendar task colors by completion state.

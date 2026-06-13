@@ -4,12 +4,14 @@ const path = require("node:path");
 const test = require("node:test");
 
 test("DailyFlow keeps navigation on the right and main content first", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
-  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+56px\s+minmax\(180px,\s*240px\)/);
+  assert.doesNotMatch(source, /renderRail\(\)/);
+  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*300px\)/);
   assert.match(styles, /\.daily-flow-main\s*{[^}]*grid-column:\s*1/s);
-  assert.match(styles, /\.daily-flow-rail\s*{[^}]*grid-column:\s*2/s);
-  assert.match(styles, /\.daily-flow-middle\s*{[^}]*grid-column:\s*3/s);
+  assert.doesNotMatch(styles, /\.daily-flow-rail\s*{/);
+  assert.match(styles, /\.daily-flow-middle\s*{[^}]*grid-column:\s*2/s);
 });
 
 test("DailyFlow exposes direct add affordances beyond the header plus button", () => {
@@ -76,8 +78,22 @@ test("visual chrome stays light and TickTick-like", () => {
   assert.match(styles, /--daily-flow-line:\s*rgba\(142,\s*149,\s*166,\s*0\.16\)/);
   assert.match(styles, /\.daily-flow-root button\s*{[^}]*box-shadow:\s*none/s);
   assert.match(styles, /\.daily-flow-root button\s*{[^}]*appearance:\s*none/s);
-  assert.match(styles, /\.daily-flow-rail\s*{[^}]*background:\s*var\(--background-primary\)/s);
   assert.match(styles, /\.daily-flow-middle\s*{[^}]*border-left:\s*1px solid var\(--daily-flow-line\)/s);
   assert.match(styles, /\.daily-flow-task-row\s*{[^}]*border-bottom:\s*1px solid var\(--daily-flow-line\)/s);
   assert.match(styles, /\.daily-flow-week-column\s*{[^}]*border:\s*0/s);
+});
+
+test("focus view follows TickTick-like pomodoro layout", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /renderFocusHeader\(\)/);
+  assert.match(source, /番茄专注/);
+  assert.match(source, /番茄计时/);
+  assert.match(source, /正计时/);
+  assert.match(source, /daily-flow-focus-overview/);
+  assert.match(source, /专注记录/);
+  assert.match(styles, /\.daily-flow-focus-layout\s*{[^}]*grid-template-columns:\s*minmax\(420px,\s*1fr\)\s+minmax\(360px,\s*0\.92fr\)/s);
+  assert.match(styles, /\.daily-flow-focus-ring\s*{[^}]*width:\s*min\(44vw,\s*440px\)/s);
+  assert.match(styles, /\.daily-flow-focus-start\s*{[^}]*background:\s*var\(--daily-flow-accent\)/s);
 });

@@ -383,7 +383,9 @@ const pluginModule = (() => {
         taskId: null,
         running: false,
         paused: false,
+        mode: "pomodoro",
         startedAt: null,
+        elapsedSeconds: 0,
         remainingSeconds: plugin.data.settings.defaultFocusMinutes * 60,
         plannedMinutes: plugin.data.settings.defaultFocusMinutes,
         intervalId: null
@@ -418,7 +420,6 @@ const pluginModule = (() => {
       const shell = createEl("div", "daily-flow-shell");
       root.appendChild(shell);
 
-      shell.appendChild(this.renderRail());
       shell.appendChild(this.renderMiddle());
 
       const main = createEl("main", "daily-flow-main");
@@ -431,27 +432,6 @@ const pluginModule = (() => {
       } else {
         this.renderTasks(main);
       }
-    }
-
-    renderRail() {
-      const rail = createEl("nav", "daily-flow-rail");
-      const items = [
-        ["tasks", "Tasks", "✓"],
-        ["calendar", "Calendar", "▦"],
-        ["focus", "Focus", "◎"]
-      ];
-
-      for (const [section, label, icon] of items) {
-        const button = createButton(icon, label, this.section === section);
-        button.addEventListener("click", () => {
-          this.section = section;
-          this.activeTaskDetailId = null;
-          this.render();
-        });
-        rail.appendChild(button);
-      }
-
-      return rail;
     }
 
     renderMiddle() {
@@ -732,7 +712,7 @@ const pluginModule = (() => {
     }
 
     renderFocus(main) {
-      main.appendChild(this.renderHeader("Focus", () => this.openTaskModal({ dueDate: core.formatLocalDate(new Date()) })));
+      main.appendChild(this.renderFocusHeader());
 
       const layout = createEl("div", "daily-flow-focus-layout");
       const timerPane = createEl("section", "daily-flow-focus-timer");
@@ -750,47 +730,78 @@ const pluginModule = (() => {
         this.focus.taskId = taskPicker.value || null;
       });
 
+      const focusHint = createEl("button", "daily-flow-focus-link", taskPicker.selectedOptions[0]?.textContent || "专注");
+      focusHint.addEventListener("click", () => taskPicker.focus());
+
       const ring = createEl("div", "daily-flow-focus-ring");
-      ring.appendChild(createEl("div", "daily-flow-focus-time", this.formatSeconds(this.focus.remainingSeconds)));
+      ring.appendChild(createEl("div", "daily-flow-focus-time", this.currentFocusDisplay()));
 
       const controls = createEl("div", "daily-flow-focus-controls");
-      const primary = createEl("button", "daily-flow-primary-button", this.focus.running && !this.focus.paused ? "Pause" : this.focus.paused ? "Resume" : "Start");
+      const primary = createEl("button", "daily-flow-focus-start", this.focus.running && !this.focus.paused ? "暂停" : this.focus.paused ? "继续" : "开始");
       primary.addEventListener("click", () => this.toggleFocus());
       controls.appendChild(primary);
 
       if (this.focus.running || this.focus.paused) {
-        const end = createEl("button", "daily-flow-text-button", "End");
+        const end = createEl("button", "daily-flow-focus-end", "结束");
         end.addEventListener("click", () => this.endFocus(false));
         controls.appendChild(end);
       }
 
       timerPane.appendChild(taskPicker);
+      timerPane.appendChild(focusHint);
       timerPane.appendChild(ring);
       timerPane.appendChild(controls);
 
-      const history = createEl("aside", "daily-flow-focus-history");
+      const history = createEl("aside", "daily-flow-focus-overview");
       const todayKey = core.formatLocalDate(new Date());
       const todays = this.plugin.data.focusSessions.filter((session) => session.startedAt.startsWith(todayKey));
       const totalMinutes = this.plugin.data.focusSessions.reduce((sum, session) => sum + session.actualMinutes, 0);
       history.appendChild(this.renderStatCards(todays.length, todays.reduce((sum, session) => sum + session.actualMinutes, 0), this.plugin.data.focusSessions.length, totalMinutes));
-      history.appendChild(createEl("h3", "", "Focus History"));
-
-      for (const session of [...this.plugin.data.focusSessions].reverse().slice(0, 12)) {
-        history.appendChild(this.renderFocusRecord(session));
-      }
+      history.appendChild(this.renderFocusHistory());
 
       layout.appendChild(timerPane);
       layout.appendChild(history);
       main.appendChild(layout);
     }
 
+    renderFocusHeader() {
+      const header = createEl("header", "daily-flow-focus-header");
+      header.appendChild(createEl("h2", "", "番茄专注"));
+
+      const tabs = createEl("div", "daily-flow-focus-tabs");
+      for (const [mode, label] of [["pomodoro", "番茄计时"], ["stopwatch", "正计时"]]) {
+        const tab = createEl("button", "daily-flow-focus-tab", label);
+        if (this.focus.mode === mode) {
+          tab.addClass("is-active");
+        }
+        tab.addEventListener("click", () => {
+          if (this.focus.mode !== mode) {
+            this.focus.mode = mode;
+            this.resetFocusTimer();
+            this.render();
+          }
+        });
+        tabs.appendChild(tab);
+      }
+      header.appendChild(tabs);
+
+      const actions = createEl("div", "daily-flow-focus-header-actions");
+      const add = createEl("button", "daily-flow-focus-tool", "+");
+      add.addEventListener("click", () => this.openTaskModal({ dueDate: core.formatLocalDate(new Date()) }));
+      actions.appendChild(add);
+      actions.appendChild(createEl("button", "daily-flow-focus-tool", "◦"));
+      actions.appendChild(createEl("button", "daily-flow-focus-tool", "…"));
+      header.appendChild(actions);
+      return header;
+    }
+
     renderStatCards(todayCount, todayMinutes, totalCount, totalMinutes) {
       const grid = createEl("div", "daily-flow-stats");
       const cards = [
-        ["Today Sessions", String(todayCount)],
-        ["Today Focus", `${todayMinutes}m`],
-        ["Total Sessions", String(totalCount)],
-        ["Total Focus", `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`]
+        ["今日番茄", String(todayCount)],
+        ["今日专注时长", `${todayMinutes} m`],
+        ["总番茄", String(totalCount)],
+        ["总专注时长", `${Math.floor(totalMinutes / 60)} h ${totalMinutes % 60} m`]
       ];
       for (const [label, value] of cards) {
         const card = createEl("div", "daily-flow-stat");
@@ -801,11 +812,50 @@ const pluginModule = (() => {
       return grid;
     }
 
+    renderFocusHistory() {
+      const section = createEl("section", "daily-flow-focus-history");
+      const header = createEl("div", "daily-flow-focus-history-header");
+      header.appendChild(createEl("h3", "", "专注记录"));
+      const actions = createEl("div", "daily-flow-focus-history-actions");
+      actions.appendChild(createEl("button", "daily-flow-focus-tool", "+"));
+      actions.appendChild(createEl("button", "daily-flow-focus-tool", "…"));
+      header.appendChild(actions);
+      section.appendChild(header);
+
+      const sessions = [...this.plugin.data.focusSessions].reverse().slice(0, 12);
+      const grouped = new Map();
+      for (const session of sessions) {
+        const key = session.startedAt.slice(0, 10);
+        if (!grouped.has(key)) {
+          grouped.set(key, []);
+        }
+        grouped.get(key).push(session);
+      }
+
+      if (sessions.length === 0) {
+        section.appendChild(createEl("p", "daily-flow-empty", "暂无专注记录"));
+        return section;
+      }
+
+      for (const [date, items] of grouped.entries()) {
+        section.appendChild(createEl("div", "daily-flow-focus-history-date", this.formatFocusDate(date)));
+        for (const session of items) {
+          section.appendChild(this.renderFocusRecord(session));
+        }
+      }
+      return section;
+    }
+
     renderFocusRecord(session) {
       const row = createEl("div", "daily-flow-focus-record");
       const task = this.plugin.data.tasks.find((item) => item.id === session.taskId);
-      row.appendChild(createEl("strong", "", task ? task.title : "Free focus"));
-      row.appendChild(createEl("span", "", `${formatDateTime(session.startedAt)} · ${session.actualMinutes}m`));
+      const marker = createEl("span", "daily-flow-focus-record-marker", "◕");
+      const body = createEl("div", "daily-flow-focus-record-body");
+      body.appendChild(createEl("span", "", this.focusTimeRange(session)));
+      body.appendChild(createEl("strong", "", task ? task.title : "自由专注"));
+      row.appendChild(marker);
+      row.appendChild(body);
+      row.appendChild(createEl("span", "daily-flow-focus-record-duration", `${session.actualMinutes}m`));
       return row;
     }
 
@@ -1035,6 +1085,7 @@ const pluginModule = (() => {
       this.focus.running = false;
       this.focus.paused = false;
       this.focus.startedAt = null;
+      this.focus.elapsedSeconds = 0;
       this.focus.plannedMinutes = this.plugin.data.settings.defaultFocusMinutes;
       this.focus.remainingSeconds = this.focus.plannedMinutes * 60;
     }
@@ -1060,6 +1111,11 @@ const pluginModule = (() => {
       this.stopFocusInterval();
       this.focus.intervalId = window.setInterval(() => {
         if (!this.focus.running) {
+          return;
+        }
+        if (this.focus.mode === "stopwatch") {
+          this.focus.elapsedSeconds += 1;
+          this.render();
           return;
         }
         this.focus.remainingSeconds = Math.max(0, this.focus.remainingSeconds - 1);
@@ -1103,6 +1159,30 @@ const pluginModule = (() => {
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
       return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+    }
+
+    currentFocusDisplay() {
+      return this.focus.mode === "stopwatch"
+        ? this.formatSeconds(this.focus.elapsedSeconds)
+        : this.formatSeconds(this.focus.remainingSeconds);
+    }
+
+    formatFocusDate(value) {
+      const date = core.parseLocalDate(value);
+      if (!date) {
+        return value;
+      }
+      return `${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    focusTimeRange(session) {
+      const started = new Date(session.startedAt);
+      const ended = new Date(session.endedAt);
+      if (Number.isNaN(started.getTime()) || Number.isNaN(ended.getTime())) {
+        return formatDateTime(session.startedAt);
+      }
+      const prefix = (date) => `${date.getHours() < 12 ? "上午" : "下午"} ${String(date.getHours() % 12 || 12)}:${String(date.getMinutes()).padStart(2, "0")}`;
+      return `${prefix(started)} - ${prefix(ended)}`;
     }
   }
 
