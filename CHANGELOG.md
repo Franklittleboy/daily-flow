@@ -2,11 +2,15 @@
 
 ## 0.1.10 - 2026-06-13
 
-Draft local focus page redesign.
+Draft local TickTick-like workspace polish.
 
 - Removed the middle icon rail so navigation only appears in the right sidebar.
 - Reworked the focus page toward TickTick's pomodoro layout with mode tabs, a large central timer, overview cards, and focus history.
+- Added visible focus task binding from the pomodoro page and excluded paused time from saved focus-session duration.
 - Added stopwatch mode while preserving the existing pomodoro countdown flow.
+- Refined month and week calendar density, spacing, and task bar alignment for denser daily schedules.
+- Added faint Chinese lunar dates in month cells when supported by the runtime.
+- Reworked week view with a week/day header, all-day task area, draggable divider, and a scrollable 0-24 time grid that defaults to 8 AM.
 
 ## 0.1.9 - 2026-06-12
 
