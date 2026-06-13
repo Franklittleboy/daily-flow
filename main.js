@@ -385,6 +385,8 @@ const pluginModule = (() => {
         paused: false,
         mode: "pomodoro",
         startedAt: null,
+        pausedAt: null,
+        pausedSeconds: 0,
         elapsedSeconds: 0,
         remainingSeconds: plugin.data.settings.defaultFocusMinutes * 60,
         plannedMinutes: plugin.data.settings.defaultFocusMinutes,
@@ -716,8 +718,10 @@ const pluginModule = (() => {
 
       const layout = createEl("div", "daily-flow-focus-layout");
       const timerPane = createEl("section", "daily-flow-focus-timer");
+      const taskBinding = createEl("label", "daily-flow-focus-task-binding");
+      taskBinding.appendChild(createEl("span", "", "专注任务"));
       const taskPicker = createEl("select", "daily-flow-select daily-flow-focus-select");
-      const none = createEl("option", "", "No task");
+      const none = createEl("option", "", "自由专注");
       none.value = "";
       taskPicker.appendChild(none);
       for (const task of this.plugin.data.tasks.filter((item) => !item.completed)) {
@@ -728,10 +732,9 @@ const pluginModule = (() => {
       }
       taskPicker.addEventListener("change", () => {
         this.focus.taskId = taskPicker.value || null;
+        this.render();
       });
-
-      const focusHint = createEl("button", "daily-flow-focus-link", taskPicker.selectedOptions[0]?.textContent || "专注");
-      focusHint.addEventListener("click", () => taskPicker.focus());
+      taskBinding.appendChild(taskPicker);
 
       const ring = createEl("div", "daily-flow-focus-ring");
       ring.appendChild(createEl("div", "daily-flow-focus-time", this.currentFocusDisplay()));
@@ -747,8 +750,7 @@ const pluginModule = (() => {
         controls.appendChild(end);
       }
 
-      timerPane.appendChild(taskPicker);
-      timerPane.appendChild(focusHint);
+      timerPane.appendChild(taskBinding);
       timerPane.appendChild(ring);
       timerPane.appendChild(controls);
 
@@ -1085,6 +1087,8 @@ const pluginModule = (() => {
       this.focus.running = false;
       this.focus.paused = false;
       this.focus.startedAt = null;
+      this.focus.pausedAt = null;
+      this.focus.pausedSeconds = 0;
       this.focus.elapsedSeconds = 0;
       this.focus.plannedMinutes = this.plugin.data.settings.defaultFocusMinutes;
       this.focus.remainingSeconds = this.focus.plannedMinutes * 60;
@@ -1093,15 +1097,23 @@ const pluginModule = (() => {
     toggleFocus() {
       if (!this.focus.running && !this.focus.paused) {
         this.focus.running = true;
+        this.focus.paused = false;
         this.focus.startedAt = new Date();
+        this.focus.pausedAt = null;
+        this.focus.pausedSeconds = 0;
         this.startFocusInterval();
       } else if (this.focus.running) {
         this.focus.running = false;
         this.focus.paused = true;
+        this.focus.pausedAt = new Date();
         this.stopFocusInterval();
       } else if (this.focus.paused) {
+        if (this.focus.pausedAt) {
+          this.focus.pausedSeconds += Math.max(0, Math.round((Date.now() - this.focus.pausedAt.getTime()) / 1000));
+        }
         this.focus.running = true;
         this.focus.paused = false;
+        this.focus.pausedAt = null;
         this.startFocusInterval();
       }
       this.render();
@@ -1134,6 +1146,20 @@ const pluginModule = (() => {
       }
     }
 
+    activeFocusSeconds(endedAt) {
+      if (!this.focus.startedAt) {
+        return 0;
+      }
+      if (this.focus.mode === "stopwatch") {
+        return this.focus.elapsedSeconds;
+      }
+      const totalSeconds = Math.max(0, Math.round((endedAt.getTime() - this.focus.startedAt.getTime()) / 1000));
+      const currentPause = this.focus.pausedAt
+        ? Math.max(0, Math.round((endedAt.getTime() - this.focus.pausedAt.getTime()) / 1000))
+        : 0;
+      return Math.max(0, totalSeconds - this.focus.pausedSeconds - currentPause);
+    }
+
     async endFocus(completed) {
       if (!this.focus.startedAt) {
         this.resetFocusTimer();
@@ -1141,7 +1167,7 @@ const pluginModule = (() => {
         return;
       }
       const endedAt = new Date();
-      const elapsedSeconds = Math.max(0, Math.round((endedAt.getTime() - this.focus.startedAt.getTime()) / 1000));
+      const elapsedSeconds = this.activeFocusSeconds(endedAt);
       const actualMinutes = Math.max(1, Math.round(elapsedSeconds / 60));
       await this.plugin.setDailyData(core.createFocusSession(this.plugin.data, {
         taskId: this.focus.taskId,
