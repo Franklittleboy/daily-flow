@@ -24,6 +24,16 @@ The local `0.1.10` draft includes:
 - Calendar task bars use status color:
   - incomplete tasks: deeper blue
   - completed tasks: lighter blue-gray
+- Calendar views branch update:
+  - incomplete month/week task bars now use an explicit TickTick-like blue todo state
+  - month/week task rows are more compact for dense daily schedules
+  - month cells show up to 6 tasks before the `+N` overflow marker
+  - calendar top spacing and right sidebar width are reduced to leave more room for month/week grids
+  - month day cells show a faint Chinese lunar date next to the solar day number when supported by the runtime
+  - month weekday headers use a fixed thin grid row, and calendar task buttons override Obsidian's default button height for denser TickTick-like rows
+  - calendar task text is left-aligned, and the month grid stretches to fill available vertical space to reduce bottom whitespace
+  - week view now follows the TickTick-like structure: week-number/day header, all-day task area, draggable horizontal divider, and an 8 AM based time grid
+  - week view keeps the all-day task area fixed while only the time grid scrolls; the time grid covers 0-24 and defaults to 8 AM
 - Month/week task detail popover exists with completion toggle and date picker.
 
 ## Parallel Worktrees
