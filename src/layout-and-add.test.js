@@ -97,3 +97,17 @@ test("focus view follows TickTick-like pomodoro layout", () => {
   assert.match(styles, /\.daily-flow-focus-ring\s*{[^}]*width:\s*min\(44vw,\s*440px\)/s);
   assert.match(styles, /\.daily-flow-focus-start\s*{[^}]*background:\s*var\(--daily-flow-accent\)/s);
 });
+
+test("focus view exposes task binding and saves only active focus time", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /daily-flow-focus-task-binding/);
+  assert.match(source, /自由专注/);
+  assert.match(source, /taskPicker\.addEventListener\("change"[\s\S]*this\.render\(\)/);
+  assert.match(source, /pausedAt/);
+  assert.match(source, /pausedSeconds/);
+  assert.match(source, /activeFocusSeconds\(endedAt\)/);
+  assert.match(styles, /\.daily-flow-focus-task-binding\s*{/);
+  assert.doesNotMatch(styles, /\.daily-flow-focus-select\s*{[^}]*pointer-events:\s*none/s);
+});

@@ -71,6 +71,7 @@ Use this as the first message in a new Codex session:
 ## Feature Scope Guide
 
 - Focus page:
+  Status 2026-06-13: ready for local review in `.worktrees/focus-page`. Focus task binding is now visible/selectable from the pomodoro page, and paused time is excluded from saved focus-session duration.
   Improve the TickTick-like pomodoro page, timer controls, focus history, overview cards, and focus task binding.
 - Calendar views:
   Improve month/week layout, colors, spacing, direct creation, and task display density.
