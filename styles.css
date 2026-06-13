@@ -13,7 +13,7 @@
 
 .daily-flow-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  grid-template-columns: minmax(0, 1fr) minmax(168px, 204px);
   height: 100%;
   color: var(--text-normal);
   background: var(--background-primary);
@@ -38,6 +38,7 @@
 .daily-flow-day-cell,
 .daily-flow-week-date,
 .daily-flow-week-task,
+.daily-flow-week-time-cell,
 .daily-flow-week-add {
   border: 0;
   font: inherit;
@@ -62,14 +63,14 @@
 
 .daily-flow-middle {
   grid-column: 2;
-  padding: 24px 18px;
+  padding: 18px 12px;
   border-left: 1px solid var(--daily-flow-line);
   background: var(--background-primary);
 }
 
 .daily-flow-middle-title {
-  margin: 0 0 18px;
-  font-size: 18px;
+  margin: 0 0 12px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -78,13 +79,14 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 38px;
-  padding: 0 12px;
-  margin-bottom: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  margin-bottom: 4px;
   border-radius: 7px;
   color: var(--text-normal);
   background: transparent;
   text-align: left;
+  white-space: nowrap;
 }
 
 .daily-flow-nav-item:hover {
@@ -100,12 +102,15 @@
 }
 
 .daily-flow-main {
+  display: flex;
+  flex-direction: column;
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   position: relative;
-  padding: 22px 30px;
+  padding: 14px 18px;
 }
 
 .daily-flow-header {
@@ -113,12 +118,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .daily-flow-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.2;
 }
 
@@ -247,27 +252,36 @@
 
 .daily-flow-month-grid {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: repeat(7, minmax(92px, 1fr));
-  grid-auto-rows: minmax(118px, 1fr);
+  grid-template-rows: 20px;
+  grid-auto-rows: minmax(0, 1fr);
+  min-height: 0;
   border-top: 1px solid var(--daily-flow-line);
   border-left: 1px solid var(--daily-flow-line);
 }
 
 .daily-flow-weekday {
-  min-height: 32px;
-  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-height: 20px;
+  padding: 3px 6px;
   border-right: 1px solid var(--daily-flow-line);
   border-bottom: 1px solid var(--daily-flow-line);
   color: var(--text-muted);
+  font-size: 12px;
+  line-height: 14px;
   text-align: center;
 }
 
 .daily-flow-day-cell {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
   min-width: 0;
-  padding: 7px;
+  padding: 6px;
   border-right: 1px solid var(--daily-flow-line);
   border-bottom: 1px solid var(--daily-flow-line);
   color: var(--text-normal);
@@ -288,21 +302,37 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 26px;
+  min-height: 20px;
+}
+
+.daily-flow-date-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
 }
 
 .daily-flow-day-number {
   display: inline-grid;
   place-items: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   border: 0;
   border-radius: 50%;
   color: var(--text-normal);
   background: transparent;
   font: inherit;
   font-weight: 650;
+}
+
+.daily-flow-lunar {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .daily-flow-day-number:hover {
@@ -338,36 +368,50 @@
 }
 
 .daily-flow-calendar-task {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   width: 100%;
-  min-height: 22px;
+  height: 16px;
+  min-height: 0;
+  max-height: 16px;
   overflow: hidden;
-  padding: 2px 7px;
+  padding: 0 6px;
   border: 0;
-  border-radius: 5px;
-  color: white;
-  background: var(--daily-flow-accent-bar);
+  border-radius: 4px;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 14px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.daily-flow-calendar-task:hover {
-  background: var(--daily-flow-accent-bar-hover);
+.daily-flow-calendar-task.is-todo,
+.daily-flow-week-task.is-todo {
+  color: #2f3c68;
+  background-color: #91a3f7;
+}
+
+.daily-flow-calendar-task.is-todo:hover,
+.daily-flow-week-task.is-todo:hover {
+  background-color: #8498f3;
 }
 
 .daily-flow-week-task {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   overflow: hidden;
   max-width: 100%;
-  padding: 2px 6px;
+  height: 18px;
+  min-height: 0;
+  max-height: 18px;
+  padding: 0 6px;
   border-radius: 4px;
-  color: white;
-  background: var(--daily-flow-accent-bar);
+  font-size: 12px;
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -391,39 +435,144 @@
 
 .daily-flow-week {
   display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  flex: 1 1 auto;
+  grid-template-columns: 52px repeat(7, minmax(110px, 1fr));
+  grid-template-rows: 24px var(--daily-flow-week-all-day-height, minmax(260px, 1fr)) 6px minmax(300px, 1fr);
   gap: 0;
+  min-height: 0;
+  overflow: hidden;
   border-top: 1px solid var(--daily-flow-line);
   border-left: 1px solid var(--daily-flow-line);
 }
 
+.daily-flow-week-head {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(110px, 1fr));
+  min-height: 24px;
+  border-bottom: 1px solid var(--daily-flow-line);
+}
+
+.daily-flow-week-index,
+.daily-flow-week-day-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.daily-flow-week-index {
+  justify-content: flex-start;
+  padding-left: 2px;
+}
+
+.daily-flow-week-all-day {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(110px, 1fr));
+  min-height: 0;
+  border-bottom: 1px solid var(--daily-flow-line);
+}
+
+.daily-flow-week-all-day-gutter {
+  border-right: 1px solid var(--daily-flow-line);
+}
+
 .daily-flow-week-column {
-  min-height: 420px;
-  padding: 10px;
+  min-height: 0;
+  padding: 6px;
   border: 0;
   border-right: 1px solid var(--daily-flow-line);
-  border-bottom: 1px solid var(--daily-flow-line);
   border-radius: 0;
 }
 
 .daily-flow-week-date {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   width: 100%;
-  margin-bottom: 10px;
-  color: var(--text-muted);
+  height: 22px;
+  min-height: 0;
+  margin-bottom: 4px;
+  padding: 0 4px;
+  border: 0;
+  color: var(--text-normal);
   background: transparent;
   text-align: left;
 }
 
+.daily-flow-week-day-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-weight: 650;
+}
+
+.daily-flow-week-column.is-today .daily-flow-week-day-number {
+  color: white;
+  background: var(--daily-flow-accent);
+}
+
 .daily-flow-week-task {
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   text-align: left;
+}
+
+.daily-flow-week-resizer {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--daily-flow-line);
+  cursor: row-resize;
+}
+
+.daily-flow-week-resizer:hover {
+  background: var(--daily-flow-soft);
+}
+
+.daily-flow-week-time-scroll {
+  grid-column: 1 / -1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.daily-flow-week-time-grid {
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(110px, 1fr));
+  grid-auto-rows: 64px;
+  min-height: 0;
+}
+
+.daily-flow-week-time-label {
+  padding: 0 8px 0 0;
+  border-right: 1px solid var(--daily-flow-line);
+  border-bottom: 1px solid var(--daily-flow-line);
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: right;
+}
+
+.daily-flow-week-time-cell {
+  min-height: 0;
+  border: 0;
+  border-right: 1px solid var(--daily-flow-line);
+  border-bottom: 1px solid var(--daily-flow-line);
+  background: transparent;
+}
+
+.daily-flow-week-time-cell:hover {
+  background: var(--daily-flow-soft);
 }
 
 .daily-flow-week-add {
   width: 100%;
-  min-height: 32px;
-  margin-top: 8px;
+  min-height: 28px;
+  margin-top: 6px;
   border-radius: 6px;
   color: var(--text-muted);
   background: transparent;

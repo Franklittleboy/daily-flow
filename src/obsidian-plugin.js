@@ -50,6 +50,7 @@ class DailyFlowView extends ItemView {
     this.activeTaskDetailId = null;
     this.detailDatePickerOpen = false;
     this.detailPickerAnchorDate = new Date();
+    this.weekAllDayHeight = null;
     this.focus = {
       taskId: null,
       running: false,
@@ -288,7 +289,7 @@ class DailyFlowView extends ItemView {
   renderCalendar(main) {
     const title = this.calendarMode === "month"
       ? `${this.anchorDate.getFullYear()}-${String(this.anchorDate.getMonth() + 1).padStart(2, "0")}`
-      : "Week View";
+      : `${this.anchorDate.getFullYear()}年${this.anchorDate.getMonth() + 1}月`;
     main.appendChild(this.renderHeader(title, () => this.openTaskModal({ dueDate: core.formatLocalDate(this.anchorDate) })));
 
     if (this.calendarMode === "month") {
@@ -321,22 +322,28 @@ class DailyFlowView extends ItemView {
       }
 
       const dayTop = createEl("div", "daily-flow-day-top");
+      const dateLine = createEl("div", "daily-flow-date-line");
       const dayNumber = createEl("button", "daily-flow-day-number", String(Number(cell.date.slice(8, 10))));
       dayNumber.addEventListener("click", (event) => {
         event.stopPropagation();
         this.openTaskModal({ dueDate: cell.date });
       });
+      const lunar = core.formatLunarDay(cell.date);
+      dateLine.appendChild(dayNumber);
+      if (lunar) {
+        dateLine.appendChild(createEl("span", "daily-flow-lunar", lunar));
+      }
       const add = createEl("button", "daily-flow-day-add", "+ Add");
       add.addEventListener("click", (event) => {
         event.stopPropagation();
         this.openTaskModal({ dueDate: cell.date });
       });
-      dayTop.appendChild(dayNumber);
+      dayTop.appendChild(dateLine);
       dayTop.appendChild(add);
       day.appendChild(dayTop);
 
       const tasks = this.tasksForDate(cell.date);
-      for (const task of tasks.slice(0, 4)) {
+      for (const task of tasks.slice(0, 6)) {
         const bar = createEl("button", "daily-flow-calendar-task", task.title);
         this.styleCalendarTask(bar, task);
         bar.addEventListener("click", (event) => {
@@ -345,8 +352,8 @@ class DailyFlowView extends ItemView {
         });
         day.appendChild(bar);
       }
-      if (tasks.length > 4) {
-        day.appendChild(createEl("span", "daily-flow-more", `+${tasks.length - 4}`));
+      if (tasks.length > 6) {
+        day.appendChild(createEl("span", "daily-flow-more", `+${tasks.length - 6}`));
       }
       day.addEventListener("click", () => this.openTaskModal({ dueDate: cell.date }));
       grid.appendChild(day);
@@ -357,29 +364,115 @@ class DailyFlowView extends ItemView {
   renderWeek(main) {
     const week = createEl("div", "daily-flow-week");
     const days = core.getWeekDays(this.anchorDate, this.plugin.data.settings.weekStartsOn);
+    if (this.weekAllDayHeight) {
+      week.style.setProperty("--daily-flow-week-all-day-height", `${this.weekAllDayHeight}px`);
+    }
 
+    const head = createEl("div", "daily-flow-week-head");
+    head.appendChild(createEl("div", "daily-flow-week-index", `${this.isoWeekNumber(core.parseLocalDate(days[0]) || this.anchorDate)}周`));
+    for (const label of this.weekdayLabels()) {
+      head.appendChild(createEl("div", "daily-flow-week-day-name", label));
+    }
+    week.appendChild(head);
+
+    const allDay = createEl("div", "daily-flow-week-all-day");
+    allDay.appendChild(createEl("div", "daily-flow-week-all-day-gutter"));
     for (const date of days) {
       const column = createEl("section", "daily-flow-week-column");
-      const title = createEl("button", "daily-flow-week-date", date);
-      title.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
-      column.appendChild(title);
-      const tasks = this.tasksForDate(date);
-      if (tasks.length === 0) {
-        column.appendChild(createEl("p", "daily-flow-empty", "No tasks"));
+      if (core.isToday(date)) {
+        column.addClass("is-today");
       }
+      const title = createEl("button", "daily-flow-week-date");
+      title.appendChild(createEl("span", "daily-flow-week-day-number", String(Number(date.slice(8, 10)))));
+      const lunar = core.formatLunarDay(date);
+      if (lunar) {
+        title.appendChild(createEl("span", "daily-flow-lunar", lunar));
+      }
+      title.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this.openTaskModal({ dueDate: date });
+      });
+      column.appendChild(title);
+
+      const tasks = this.tasksForDate(date);
       for (const task of tasks) {
         const taskButton = createEl("button", "daily-flow-week-task", task.title);
         this.styleCalendarTask(taskButton, task);
-        taskButton.addEventListener("click", () => this.openTaskDetail(task));
+        taskButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          this.openTaskDetail(task);
+        });
         column.appendChild(taskButton);
       }
-      const add = createEl("button", "daily-flow-week-add", "+ Add task");
-      add.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
-      column.appendChild(add);
-      week.appendChild(column);
+      column.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
+      allDay.appendChild(column);
     }
+    week.appendChild(allDay);
+
+    const resizer = createEl("div", "daily-flow-week-resizer");
+    resizer.addEventListener("pointerdown", (event) => this.startWeekAllDayResize(event, week));
+    week.appendChild(resizer);
+
+    const timeScroll = createEl("div", "daily-flow-week-time-scroll");
+    const timeGrid = createEl("div", "daily-flow-week-time-grid");
+    for (let hour = 0; hour < 24; hour += 1) {
+      timeGrid.appendChild(createEl("div", "daily-flow-week-time-label", this.hourLabel(hour)));
+      for (const date of days) {
+        const slot = createEl("button", "daily-flow-week-time-cell");
+        slot.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
+        timeGrid.appendChild(slot);
+      }
+    }
+    timeScroll.appendChild(timeGrid);
+    week.appendChild(timeScroll);
 
     main.appendChild(week);
+    requestAnimationFrame(() => {
+      timeScroll.scrollTop = 8 * 64;
+    });
+  }
+
+  weekdayLabels() {
+    const labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    return this.plugin.data.settings.weekStartsOn === "sunday"
+      ? ["周日", ...labels.slice(0, 6)]
+      : labels;
+  }
+
+  hourLabel(hour) {
+    const suffix = hour < 12 ? "AM" : "PM";
+    const display = hour === 12 ? 12 : hour % 12;
+    return `${display} ${suffix}`;
+  }
+
+  isoWeekNumber(date) {
+    const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = target.getUTCDay() || 7;
+    target.setUTCDate(target.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+    return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+  }
+
+  startWeekAllDayResize(event, week) {
+    event.preventDefault();
+    const allDay = week.querySelector(".daily-flow-week-all-day");
+    if (!allDay) {
+      return;
+    }
+    const startY = event.clientY;
+    const startHeight = allDay.getBoundingClientRect().height;
+    const doc = week.ownerDocument;
+    const move = (moveEvent) => {
+      const next = Math.max(180, Math.min(640, startHeight + moveEvent.clientY - startY));
+      this.weekAllDayHeight = next;
+      week.style.setProperty("--daily-flow-week-all-day-height", `${next}px`);
+    };
+    const up = () => {
+      doc.removeEventListener("pointermove", move);
+      doc.removeEventListener("pointerup", up);
+    };
+    doc.addEventListener("pointermove", move);
+    doc.addEventListener("pointerup", up);
   }
 
   renderFocus(main) {
@@ -737,6 +830,8 @@ class DailyFlowView extends ItemView {
   styleCalendarTask(button, task) {
     if (task.completed) {
       button.addClass("is-completed");
+    } else {
+      button.addClass("is-todo");
     }
   }
 
