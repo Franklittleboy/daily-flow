@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.10 - 2026-06-13
+## 0.2.0 - 2026-06-14
 
-Draft local TickTick-like workspace polish.
+TickTick-like workspace polish.
 
 - Removed the middle icon rail so navigation only appears in the right sidebar.
 - Reworked the focus page toward TickTick's pomodoro layout with mode tabs, a large central timer, overview cards, and focus history.

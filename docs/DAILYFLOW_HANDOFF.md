@@ -3,7 +3,7 @@
 ## Current Baseline
 
 - Project: DailyFlow Obsidian plugin.
-- Current local draft version: `0.1.10`.
+- Current local release version: `0.2.0`.
 - Baseline branch to use for parallel feature work: `draft/0.1.10-base`.
 - Do not push to GitHub or create a GitHub Release until Frank explicitly says the feature batch is finished.
 - Local Obsidian plugin directory:
@@ -11,7 +11,7 @@
 
 ## Current Draft State
 
-The local `0.1.10` draft includes:
+The local `0.2.0` release includes:
 
 - Removed the middle icon rail. Navigation is now only the right text sidebar.
 - Focus page was redesigned toward the TickTick pomodoro page:
@@ -90,7 +90,7 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
-  Status 2026-06-13: full local release-prep branch assembled in `.worktrees/release-polish`. Merged `feature/focus-page` and `feature/calendar-views`, updated `CHANGELOG.md` and `release-notes/0.1.10.md`; tests, syntax check, and build pass locally. No GitHub push, tag, or Release was created.
+  Status 2026-06-14: prepared GitHub publication as `0.2.0` from `.worktrees/release-polish`. Merged `feature/focus-page` and `feature/calendar-views`, updated `CHANGELOG.md`, `versions.json`, and `release-notes/0.2.0.md`; final tests, syntax check, and build pass locally before tag/release.
   Only after the feature batch is approved: merge branches, update changelog/release notes, build, tag, push, and create GitHub Release.
 
 ## Rules For Feature Sessions
