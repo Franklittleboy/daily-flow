@@ -40,6 +40,42 @@ Use these isolated worktrees for new sessions:
 
 Each feature session should work only in its assigned worktree.
 
+## Combined Local Preview
+
+When Frank wants to copy the plugin into Obsidian and see the latest work from multiple feature sessions together, do not copy from a single feature worktree.
+
+Use the generated preview worktree instead:
+
+- Preview branch: `preview/local-obsidian`
+- Preview path: `.worktrees/preview-local`
+- Included feature branches by default:
+  - `feature/focus-page`
+  - `feature/calendar-views`
+  - `feature/task-detail-popover`
+  - `feature/mobile-layout`
+
+Before refreshing the combined preview, each included feature worktree must have its changes committed locally. The preview script intentionally refuses to include dirty worktrees, because uncommitted edits are easy to lose, conflict, or accidentally mix into another feature.
+
+Refresh, test, build, and copy the combined preview into Obsidian:
+
+```bash
+/Users/frank/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/refresh-preview.mjs --copy
+```
+
+Refresh, test, and build without copying to Obsidian:
+
+```bash
+/Users/frank/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/refresh-preview.mjs
+```
+
+To preview only selected branches:
+
+```bash
+/Users/frank/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/refresh-preview.mjs --branches=feature/focus-page,feature/calendar-views --copy
+```
+
+The script resets only `.worktrees/preview-local`, then merges the selected feature branches into that generated preview worktree. Do not do feature development inside `.worktrees/preview-local`.
+
 ## Verification Commands
 
 Run these from the active worktree:
@@ -50,13 +86,13 @@ Run these from the active worktree:
 /Users/frank/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/build.mjs
 ```
 
-To copy a tested local build into Obsidian for manual review:
+To copy a tested single-worktree build into Obsidian for manual review:
 
 ```bash
 cp manifest.json main.js styles.css '/Users/frank/Library/CloudStorage/OneDrive-个人/5 others/ob/.obsidian/plugins/daily-flow/'
 ```
 
-Copying to the Obsidian directory may require elevated filesystem permission in Codex.
+Prefer the combined local preview workflow above when Frank wants to see multiple feature branches together. Copying to the Obsidian directory may require elevated filesystem permission in Codex.
 
 ## New Session Prompt Template
 
@@ -66,6 +102,7 @@ Use this as the first message in a new Codex session:
 请先阅读 /Users/frank/Library/CloudStorage/OneDrive-个人/coding/codex/obsidian/docs/DAILYFLOW_HANDOFF.md。
 本次只处理 [替换成功能名称]，工作目录使用 [替换成对应 worktree 路径]。
 不要提交 GitHub，不要创建 Release。完成后运行测试、打包，并更新交接文件里的该功能状态。
+如果我要复制到 Obsidian 看多功能合成效果，请使用 combined local preview，不要只复制当前功能分支。
 ```
 
 ## Feature Scope Guide
