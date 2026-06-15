@@ -3,7 +3,7 @@
 ## Current Baseline
 
 - Project: DailyFlow Obsidian plugin.
-- Current local release version: `0.2.0`.
+- Current local release version: `0.3.0`.
 - Baseline branch to use for parallel feature work: `draft/0.1.10-base`.
 - Do not push to GitHub or create a GitHub Release until Frank explicitly says the feature batch is finished.
 - Local Obsidian plugin directory:
@@ -11,7 +11,7 @@
 
 ## Current Draft State
 
-The local `0.2.0` release includes:
+The local `0.3.0` release includes:
 
 - Removed the middle icon rail. Navigation is now only the right text sidebar.
 - Focus page was redesigned toward the TickTick pomodoro page:
@@ -35,6 +35,11 @@ The local `0.2.0` release includes:
   - week view now follows the TickTick-like structure: week-number/day header, all-day task area, draggable horizontal divider, and an 8 AM based time grid
   - week view keeps the all-day task area fixed while only the time grid scrolls; the time grid covers 0-24 and defaults to 8 AM
 - Month/week task detail popover exists with completion toggle and date picker.
+- Task detail popover branch update:
+  - new task and existing-task cards use compact DailyFlow floating cards instead of Obsidian's default modal
+  - title, note, date, completion state, subtasks, local attachment records, and task actions are available from the card
+  - start-focus binding and conversion to a note-style detail view are exposed from the task action flow
+- Combined local preview workflow exists for merging feature branches into `.worktrees/preview-local`, testing, building, and optionally copying to Obsidian.
 
 ## Parallel Worktrees
 
@@ -128,7 +133,7 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
-  Status 2026-06-14: prepared GitHub publication as `0.2.0` from `.worktrees/release-polish`. Merged `feature/focus-page` and `feature/calendar-views`, updated `CHANGELOG.md`, `versions.json`, and `release-notes/0.2.0.md`; final tests, syntax check, and build pass locally before tag/release.
+  Status 2026-06-15: prepared GitHub publication as `0.3.0` from `.worktrees/release-polish`. Merged `feature/focus-page`, `feature/calendar-views`, `feature/task-detail-popover`, and `draft/0.1.10-base` preview workflow; updated `CHANGELOG.md`, `versions.json`, and `release-notes/0.3.0.md`; final tests, syntax check, and build pass locally before tag/release.
   Only after the feature batch is approved: merge branches, update changelog/release notes, build, tag, push, and create GitHub Release.
 
 ## Rules For Feature Sessions
