@@ -76,7 +76,7 @@ Use this as the first message in a new Codex session:
   Improve month/week layout, colors, spacing, direct creation, and task display density.
 - Task detail popover:
   Status: implemented in `feature/task-detail-popover`.
-  Improved the TickTick-like new task card and calendar task detail card with title/note editing, date picker, completion state, subtasks, local attachment records, a three-dot action menu, start-focus binding, and conversion to a note-style detail view. The new task flow now uses DailyFlow's own in-calendar floating card instead of Obsidian's default modal, and the composer card is kept compact at roughly a 2x2 calendar-cell preview size. Remaining follow-up: design and implement the special option that creates a real `.md` note file from a task.
+  Improved the TickTick-like new task card and calendar task detail card with title/note editing, date picker, completion state, subtasks, local attachment records, a three-dot action menu, start-focus binding, and conversion to a note-style detail view. The new task flow now uses DailyFlow's own in-calendar floating card instead of Obsidian's default modal, and both the composer card and existing-task detail card are kept compact at roughly a 2x2 calendar-cell preview size. Remaining follow-up: design and implement the special option that creates a real `.md` note file from a task.
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:

@@ -579,8 +579,8 @@
 }
 
 .daily-flow-detail-card {
-  width: min(800px, calc(100% - 36px));
-  min-height: 600px;
+  width: min(520px, calc(100% - 48px));
+  min-height: 360px;
   overflow: visible;
   border: 1px solid var(--daily-flow-line);
   border-radius: 7px;
@@ -593,8 +593,8 @@
   grid-template-columns: 26px 1px minmax(0, 1fr) 28px;
   align-items: center;
   gap: 12px;
-  min-height: 94px;
-  padding: 0 40px;
+  min-height: 64px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--daily-flow-line);
 }
 
@@ -639,9 +639,9 @@
 
 .daily-flow-detail-title {
   display: block;
-  width: calc(100% - 80px);
-  min-height: 78px;
-  margin: 34px 40px 14px;
+  width: calc(100% - 56px);
+  min-height: 56px;
+  margin: 28px 28px 8px;
   border: 0;
   color: var(--text-normal);
   background: transparent;
@@ -657,8 +657,8 @@
 
 .daily-flow-detail-note,
 .daily-flow-note-body {
-  width: calc(100% - 80px);
-  margin: 0 40px 16px;
+  width: calc(100% - 56px);
+  margin: 0 28px 12px;
   border: 0;
   color: var(--text-normal);
   background: transparent;
@@ -667,20 +667,20 @@
 }
 
 .daily-flow-detail-note {
-  min-height: 58px;
+  min-height: 42px;
   color: var(--text-muted);
   font-size: 16px;
 }
 
 .daily-flow-note-body {
-  min-height: 220px;
+  min-height: 150px;
   font-size: 20px;
   line-height: 1.45;
 }
 
 .daily-flow-subtasks {
-  width: calc(100% - 80px);
-  margin: 0 40px 18px;
+  width: calc(100% - 56px);
+  margin: 0 28px 12px;
 }
 
 .daily-flow-subtask-row {
@@ -711,8 +711,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  width: calc(100% - 80px);
-  margin: 0 40px 18px;
+  width: calc(100% - 56px);
+  margin: 0 28px 12px;
 }
 
 .daily-flow-attachment {
@@ -728,8 +728,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 84px;
-  padding: 0 40px;
+  min-height: 64px;
+  padding: 0 28px;
   border-top: 1px solid var(--daily-flow-line);
   color: var(--text-muted);
 }

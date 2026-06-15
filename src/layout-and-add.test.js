@@ -70,13 +70,14 @@ test("task popovers expose TickTick-like subtasks, attachments, focus, and note 
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*justify-content:\s*flex-start/s);
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*min-height:\s*360px/s);
-  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*width:\s*min\(800px,\s*calc\(100% - 36px\)\)/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*min-height:\s*360px/s);
   assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*26px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*right:\s*34px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*bottom:\s*90px/s);
   assert.match(styles, /\.daily-flow-subtask-row\s*{[^}]*grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)/s);
-  assert.match(styles, /\.daily-flow-note-body\s*{[^}]*min-height:\s*220px/s);
+  assert.match(styles, /\.daily-flow-note-body\s*{[^}]*min-height:\s*150px/s);
 });
 
 test("calendar task bars use deeper todo color and lighter completed color", () => {
