@@ -41,6 +41,35 @@ test("createTask adds a dated incomplete task", () => {
   assert.equal(result.tasks[0].note, "Read the checklist");
 });
 
+test("tasks preserve subtasks, attachments, and note mode", () => {
+  let data = createTask(createEmptyData(), {
+    title: "Plan review",
+    dueDate: "2026-06-12",
+    note: "Read the checklist",
+    subtasks: [{ title: "Confirm scope" }],
+    attachments: [{ name: "brief.pdf", path: "/tmp/brief.pdf" }]
+  });
+
+  const taskId = data.tasks[0].id;
+  assert.equal(data.tasks[0].subtasks.length, 1);
+  assert.equal(data.tasks[0].subtasks[0].title, "Confirm scope");
+  assert.equal(data.tasks[0].subtasks[0].completed, false);
+  assert.equal(data.tasks[0].attachments[0].name, "brief.pdf");
+  assert.equal(data.tasks[0].kind, "task");
+
+  data = updateTask(data, taskId, {
+    kind: "note",
+    note: "记录你的想法",
+    subtasks: [{ id: data.tasks[0].subtasks[0].id, title: "Confirm scope", completed: true }],
+    attachments: [{ name: "brief.pdf", path: "/tmp/brief.pdf" }, { name: "notes.txt", path: "/tmp/notes.txt" }]
+  });
+
+  const updated = data.tasks[0];
+  assert.equal(updated.kind, "note");
+  assert.equal(updated.subtasks[0].completed, true);
+  assert.equal(updated.attachments.length, 2);
+});
+
 test("createTask rejects an empty title", () => {
   assert.throws(() => createTask(createEmptyData(), { title: "   " }), /Task title is required/);
 });

@@ -49,6 +49,34 @@ test("calendar task detail popover supports completion and date picking", () => 
   assert.match(styles, /\.daily-flow-date-picker-grid\s*{[^}]*grid-template-columns:\s*repeat\(7,\s*1fr\)/s);
 });
 
+test("task popovers expose TickTick-like subtasks, attachments, focus, and note conversion", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /activeTaskComposer/);
+  assert.match(source, /renderTaskComposer\(main\)/);
+  assert.match(source, /openTaskModal\(task\)[\s\S]*if \(!task\.id\)[\s\S]*activeTaskComposer/);
+  assert.match(source, /daily-flow-modal-card/);
+  assert.match(source, /daily-flow-modal-checklist-toggle/);
+  assert.match(source, /换行即可添加检查事项/);
+  assert.match(source, /daily-flow-detail-menu/);
+  assert.match(source, /添加子任务/);
+  assert.match(source, /上传附件/);
+  assert.match(source, /开始专注/);
+  assert.match(source, /转换为笔记/);
+  assert.match(source, /startFocusForTask\(task\.id\)/);
+  assert.match(source, /convertTaskToNote\(task\)/);
+  assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*align-items:\s*flex-end/s);
+  assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*justify-content:\s*flex-start/s);
+  assert.match(styles, /\.daily-flow-modal-card,\s*\.daily-flow-detail-card\s*{[^}]*width:\s*min\(800px,\s*calc\(100% - 36px\)\)/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*26px/s);
+  assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
+  assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*right:\s*34px/s);
+  assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*bottom:\s*90px/s);
+  assert.match(styles, /\.daily-flow-subtask-row\s*{[^}]*grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-note-body\s*{[^}]*min-height:\s*220px/s);
+});
+
 test("calendar task bars use deeper todo color and lighter completed color", () => {
   const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");

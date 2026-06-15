@@ -114,6 +114,36 @@ const dailyFlowCore = (() => {
     return next;
   }
 
+  function normalizeSubtask(subtask) {
+    if (!subtask || typeof subtask !== "object") {
+      return null;
+    }
+    const title = typeof subtask.title === "string" ? subtask.title.trim() : "";
+    if (!title) {
+      return null;
+    }
+    return {
+      id: typeof subtask.id === "string" && subtask.id ? subtask.id : createId("subtask"),
+      title,
+      completed: Boolean(subtask.completed)
+    };
+  }
+
+  function normalizeAttachment(attachment) {
+    if (!attachment || typeof attachment !== "object") {
+      return null;
+    }
+    const name = typeof attachment.name === "string" ? attachment.name.trim() : "";
+    if (!name) {
+      return null;
+    }
+    return {
+      id: typeof attachment.id === "string" && attachment.id ? attachment.id : createId("attachment"),
+      name,
+      path: typeof attachment.path === "string" ? attachment.path : ""
+    };
+  }
+
   function normalizeTask(task) {
     if (!task || typeof task !== "object" || typeof task.title !== "string") {
       return null;
@@ -125,6 +155,9 @@ const dailyFlowCore = (() => {
       dueDate: typeof task.dueDate === "string" ? task.dueDate : null,
       completed: Boolean(task.completed),
       note: typeof task.note === "string" ? task.note : "",
+      kind: task.kind === "note" ? "note" : "task",
+      subtasks: Array.isArray(task.subtasks) ? task.subtasks.map(normalizeSubtask).filter(Boolean) : [],
+      attachments: Array.isArray(task.attachments) ? task.attachments.map(normalizeAttachment).filter(Boolean) : [],
       createdAt: typeof task.createdAt === "string" ? task.createdAt : now,
       updatedAt: typeof task.updatedAt === "string" ? task.updatedAt : now
     };
@@ -181,6 +214,9 @@ const dailyFlowCore = (() => {
       dueDate: typeof input.dueDate === "string" ? input.dueDate : null,
       completed: false,
       note: typeof input.note === "string" ? input.note : "",
+      kind: input.kind === "note" ? "note" : "task",
+      subtasks: Array.isArray(input.subtasks) ? input.subtasks.map(normalizeSubtask).filter(Boolean) : [],
+      attachments: Array.isArray(input.attachments) ? input.attachments.map(normalizeAttachment).filter(Boolean) : [],
       createdAt: now,
       updatedAt: now
     });
@@ -202,6 +238,13 @@ const dailyFlowCore = (() => {
       title,
       dueDate: Object.hasOwn(changes, "dueDate") ? changes.dueDate || null : next.tasks[index].dueDate,
       note: Object.hasOwn(changes, "note") ? String(changes.note || "") : next.tasks[index].note,
+      kind: Object.hasOwn(changes, "kind") && changes.kind === "note" ? "note" : next.tasks[index].kind,
+      subtasks: Object.hasOwn(changes, "subtasks") && Array.isArray(changes.subtasks)
+        ? changes.subtasks.map(normalizeSubtask).filter(Boolean)
+        : next.tasks[index].subtasks,
+      attachments: Object.hasOwn(changes, "attachments") && Array.isArray(changes.attachments)
+        ? changes.attachments.map(normalizeAttachment).filter(Boolean)
+        : next.tasks[index].attachments,
       updatedAt: new Date().toISOString()
     };
     return next;
@@ -377,7 +420,10 @@ const pluginModule = (() => {
       this.calendarMode = "month";
       this.anchorDate = new Date();
       this.activeTaskDetailId = null;
+      this.activeTaskComposer = null;
       this.detailDatePickerOpen = false;
+      this.detailMenuOpen = false;
+      this.detailSubtasksOpen = false;
       this.detailPickerAnchorDate = new Date();
       this.focus = {
         taskId: null,
@@ -432,6 +478,7 @@ const pluginModule = (() => {
       } else {
         this.renderTasks(main);
       }
+      this.renderTaskComposer(main);
     }
 
     renderMiddle() {
@@ -860,6 +907,20 @@ const pluginModule = (() => {
     }
 
     async openTaskModal(task) {
+      if (!task.id) {
+        this.activeTaskComposer = {
+          title: "",
+          dueDate: task.dueDate || core.formatLocalDate(new Date()),
+          note: "",
+          subtasks: [],
+          checklistOpen: false
+        };
+        this.activeTaskDetailId = null;
+        this.detailDatePickerOpen = false;
+        this.detailMenuOpen = false;
+        this.render();
+        return;
+      }
       new TaskModal(this.app, task, async (result) => {
         if (task.id) {
           await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, result));
@@ -875,12 +936,133 @@ const pluginModule = (() => {
       }).open();
     }
 
+    renderTaskComposer(main) {
+      if (!this.activeTaskComposer) {
+        return;
+      }
+
+      const draft = this.activeTaskComposer;
+      const layer = createEl("div", "daily-flow-detail-layer daily-flow-composer-layer");
+      layer.addEventListener("click", async (event) => {
+        if (event.target === layer) {
+          await this.saveTaskComposer(false);
+        }
+      });
+
+      const card = createEl("section", "daily-flow-modal-card");
+      card.addEventListener("click", (event) => event.stopPropagation());
+
+      const header = createEl("div", "daily-flow-modal-header");
+      const dateInput = createEl("input", "daily-flow-modal-date-input");
+      dateInput.type = "date";
+      dateInput.value = draft.dueDate || core.formatLocalDate(new Date());
+      const dateButton = createEl("button", "daily-flow-modal-date", `▦ ${formatChineseDate(dateInput.value)}`);
+      dateButton.type = "button";
+      dateButton.addEventListener("click", () => {
+        if (typeof dateInput.showPicker === "function") {
+          dateInput.showPicker();
+        } else {
+          dateInput.focus();
+        }
+      });
+      dateInput.addEventListener("change", () => {
+        draft.dueDate = dateInput.value || null;
+        dateButton.textContent = `▦ ${formatChineseDate(draft.dueDate)}`;
+      });
+      header.appendChild(dateButton);
+      header.appendChild(dateInput);
+      header.appendChild(createEl("span", "daily-flow-modal-flag", "⚐"));
+      card.appendChild(header);
+
+      const body = createEl("div", "daily-flow-modal-body");
+      const titleRow = createEl("div", "daily-flow-modal-title-row");
+      const title = createEl("input", "daily-flow-modal-title");
+      title.type = "text";
+      title.placeholder = "准备做什么？";
+      title.value = draft.title;
+      title.addEventListener("input", () => {
+        draft.title = title.value;
+      });
+      title.addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          await this.saveTaskComposer(true);
+        } else if (event.key === "Escape") {
+          this.activeTaskComposer = null;
+          this.render();
+        }
+      });
+
+      const checklistToggle = createEl("button", "daily-flow-modal-checklist-toggle", "☷");
+      checklistToggle.type = "button";
+      checklistToggle.addEventListener("click", () => {
+        draft.checklistOpen = !draft.checklistOpen;
+        this.render();
+      });
+      titleRow.appendChild(title);
+      titleRow.appendChild(checklistToggle);
+      body.appendChild(titleRow);
+
+      if (draft.checklistOpen) {
+        const note = createEl("textarea", "daily-flow-modal-note");
+        note.placeholder = "描述";
+        note.value = draft.note;
+        note.addEventListener("input", () => {
+          draft.note = note.value;
+        });
+        body.appendChild(note);
+
+        const checklist = createEl("textarea", "daily-flow-modal-subtasks");
+        checklist.placeholder = "换行即可添加检查事项";
+        checklist.value = draft.subtasks.map((subtask) => subtask.title).join("\n");
+        checklist.addEventListener("input", () => {
+          draft.subtasks = checklist.value.split("\n").map((line) => ({ title: line.trim(), completed: false }));
+        });
+        body.appendChild(checklist);
+      }
+      card.appendChild(body);
+
+      const footer = createEl("div", "daily-flow-modal-actions");
+      footer.appendChild(createEl("span", "daily-flow-modal-list", "▣ 收集箱"));
+      card.appendChild(footer);
+      layer.appendChild(card);
+      main.appendChild(layer);
+      title.focus();
+    }
+
+    async saveTaskComposer(requireTitle) {
+      const draft = this.activeTaskComposer;
+      if (!draft) {
+        return;
+      }
+      const title = draft.title.trim();
+      if (!title) {
+        if (requireTitle) {
+          new Notice("请输入待办事项标题。");
+        } else {
+          this.activeTaskComposer = null;
+          this.render();
+        }
+        return;
+      }
+      await this.plugin.setDailyData(core.createTask(this.plugin.data, {
+        title,
+        dueDate: draft.dueDate || null,
+        note: draft.note,
+        subtasks: draft.subtasks
+      }));
+      this.activeTaskComposer = null;
+      this.render();
+    }
+
     openTaskDetail(task) {
       if (!task?.id) {
         return;
       }
       this.activeTaskDetailId = task.id;
       this.detailDatePickerOpen = false;
+      this.detailMenuOpen = false;
+      this.detailSubtasksOpen = false;
       this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || new Date();
       this.render();
     }
@@ -901,6 +1083,7 @@ const pluginModule = (() => {
         if (event.target === layer) {
           this.activeTaskDetailId = null;
           this.detailDatePickerOpen = false;
+          this.detailMenuOpen = false;
           this.render();
         }
       });
@@ -909,19 +1092,24 @@ const pluginModule = (() => {
       card.addEventListener("click", (event) => event.stopPropagation());
 
       const header = createEl("div", "daily-flow-detail-header");
-      const checkbox = createEl("input", "daily-flow-detail-check");
-      checkbox.type = "checkbox";
-      checkbox.checked = task.completed;
-      checkbox.addEventListener("change", async () => {
-        await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
-        this.render();
-      });
-      header.appendChild(checkbox);
+      if (task.kind === "note") {
+        header.appendChild(createEl("span", "daily-flow-detail-note-dot", "i"));
+      } else {
+        const checkbox = createEl("input", "daily-flow-detail-check");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.completed;
+        checkbox.addEventListener("change", async () => {
+          await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
+          this.render();
+        });
+        header.appendChild(checkbox);
+      }
       header.appendChild(createEl("span", "daily-flow-detail-separator", ""));
 
       const date = createEl("button", "daily-flow-detail-date", this.taskDetailDateLabel(task));
       date.addEventListener("click", () => {
         this.detailDatePickerOpen = !this.detailDatePickerOpen;
+        this.detailMenuOpen = false;
         this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || new Date();
         this.render();
       });
@@ -953,29 +1141,201 @@ const pluginModule = (() => {
       });
       card.appendChild(title);
 
+      if (task.kind === "note") {
+        const note = createEl("textarea", "daily-flow-note-body");
+        note.placeholder = "记录你的想法，或 使用模板";
+        note.value = task.note || "";
+        note.addEventListener("blur", async () => {
+          if (note.value !== task.note) {
+            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
+            this.render();
+          }
+        });
+        card.appendChild(note);
+      } else {
+        const note = createEl("textarea", "daily-flow-detail-note");
+        note.placeholder = "描述";
+        note.value = task.note || "";
+        note.addEventListener("blur", async () => {
+          if (note.value !== task.note) {
+            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
+            this.render();
+          }
+        });
+        card.appendChild(note);
+        if (this.detailSubtasksOpen || task.subtasks.length > 0) {
+          card.appendChild(this.renderSubtasks(task));
+        }
+      }
+
+      if (task.attachments.length > 0) {
+        const attachments = createEl("div", "daily-flow-attachments");
+        for (const attachment of task.attachments) {
+          attachments.appendChild(createEl("span", "daily-flow-attachment", `⌘ ${attachment.name}`));
+        }
+        card.appendChild(attachments);
+      }
+
       if (this.detailDatePickerOpen) {
         card.appendChild(this.renderDetailDatePicker(task));
       }
 
       const footer = createEl("div", "daily-flow-detail-footer");
-      footer.appendChild(createEl("span", "daily-flow-detail-list", "▣ Inbox"));
-      const close = createEl("button", "daily-flow-detail-close", "Done");
-      close.addEventListener("click", () => {
-        this.activeTaskDetailId = null;
+      footer.appendChild(createEl("span", "daily-flow-detail-list", "▣ 收集箱"));
+      const tools = createEl("div", "daily-flow-detail-tools");
+      tools.appendChild(createEl("button", "daily-flow-detail-tool", "A"));
+      tools.appendChild(createEl("button", "daily-flow-detail-tool", "▣"));
+      const more = createEl("button", "daily-flow-detail-tool daily-flow-detail-more", "…");
+      more.addEventListener("click", () => {
+        this.detailMenuOpen = !this.detailMenuOpen;
         this.detailDatePickerOpen = false;
         this.render();
       });
-      footer.appendChild(close);
+      tools.appendChild(more);
+      footer.appendChild(tools);
       card.appendChild(footer);
+
+      if (this.detailMenuOpen) {
+        card.appendChild(this.renderDetailMenu(task));
+      }
 
       layer.appendChild(card);
       main.appendChild(layer);
     }
 
+    renderSubtasks(task) {
+      const section = createEl("div", "daily-flow-subtasks");
+      for (const subtask of task.subtasks) {
+        const row = createEl("label", "daily-flow-subtask-row");
+        const check = createEl("input", "");
+        check.type = "checkbox";
+        check.checked = subtask.completed;
+        check.addEventListener("change", async () => {
+          const subtasks = task.subtasks.map((item) => item.id === subtask.id ? { ...item, completed: check.checked } : item);
+          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { subtasks }));
+          this.render();
+        });
+        const input = createEl("input", "daily-flow-subtask-title");
+        input.type = "text";
+        input.value = subtask.title;
+        input.addEventListener("blur", async () => {
+          const nextTitle = input.value.trim();
+          const subtasks = task.subtasks
+            .map((item) => item.id === subtask.id ? { ...item, title: nextTitle || item.title } : item);
+          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { subtasks }));
+          this.render();
+        });
+        row.appendChild(check);
+        row.appendChild(input);
+        section.appendChild(row);
+      }
+
+      const add = createEl("input", "daily-flow-subtask-add");
+      add.type = "text";
+      add.placeholder = "换行即可添加检查事项";
+      add.addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const title = add.value.trim();
+          if (title) {
+            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
+              subtasks: [...task.subtasks, { title, completed: false }]
+            }));
+            this.render();
+          }
+        }
+      });
+      section.appendChild(add);
+      return section;
+    }
+
+    renderDetailMenu(task) {
+      const menu = createEl("div", "daily-flow-detail-menu");
+      const items = [
+        ["└", "添加子任务", () => {
+          this.detailSubtasksOpen = true;
+          this.detailMenuOpen = false;
+          this.render();
+        }],
+        ["☒", "放弃", null],
+        ["◇", "标签", null],
+        ["⌕", "上传附件", () => this.uploadAttachment(task)],
+        ["◎", "开始专注", () => this.startFocusForTask(task.id), true],
+        ["▦", "任务动态", null],
+        ["T", "保存为模板", null],
+        ["▢", "创建副本", null],
+        ["↪", "复制链接", null],
+        ["▱", "打开便签", null],
+        ["▣", "转换为笔记", () => this.convertTaskToNote(task)],
+        ["▤", "打印", null],
+        ["⌫", "删除", async () => {
+          await this.plugin.setDailyData(core.deleteTask(this.plugin.data, task.id));
+          this.activeTaskDetailId = null;
+          this.detailMenuOpen = false;
+          this.render();
+        }]
+      ];
+
+      for (const [icon, label, action, hasArrow] of items) {
+        const item = createEl("button", "daily-flow-detail-menu-item");
+        if (!action) {
+          item.addClass("is-placeholder");
+        }
+        item.appendChild(createEl("span", "daily-flow-detail-menu-icon", icon));
+        item.appendChild(createEl("span", "", label));
+        if (hasArrow) {
+          item.appendChild(createEl("span", "daily-flow-detail-menu-arrow", "›"));
+        }
+        if (action) {
+          item.addEventListener("click", action);
+        }
+        menu.appendChild(item);
+      }
+      return menu;
+    }
+
+    async uploadAttachment(task) {
+      const input = createEl("input");
+      input.type = "file";
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) {
+          return;
+        }
+        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
+          attachments: [...task.attachments, { name: file.name, path: file.path || file.name }]
+        }));
+        this.detailMenuOpen = false;
+        this.render();
+      });
+      input.click();
+    }
+
+    startFocusForTask(taskId) {
+      this.activeTaskDetailId = null;
+      this.detailMenuOpen = false;
+      this.section = "focus";
+      this.focus.taskId = taskId;
+      this.resetFocusTimer();
+      this.focus.running = true;
+      this.focus.startedAt = new Date();
+      this.startFocusInterval();
+      this.render();
+    }
+
+    async convertTaskToNote(task) {
+      await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
+        kind: "note",
+        note: task.note || ""
+      }));
+      this.detailMenuOpen = false;
+      this.render();
+    }
+
     renderDetailDatePicker(task) {
       const picker = createEl("div", "daily-flow-detail-date-picker");
       const tabs = createEl("div", "daily-flow-date-picker-tabs");
-      tabs.appendChild(createEl("span", "is-active", "Date"));
+      tabs.appendChild(createEl("span", "is-active", "日期"));
       picker.appendChild(tabs);
 
       const monthHeader = createEl("div", "daily-flow-date-picker-header");
@@ -1029,7 +1389,7 @@ const pluginModule = (() => {
       picker.appendChild(grid);
 
       const actions = createEl("div", "daily-flow-date-picker-actions");
-      const clear = createEl("button", "daily-flow-date-picker-clear", "Clear");
+      const clear = createEl("button", "daily-flow-date-picker-clear", "清除");
       clear.addEventListener("click", async () => {
         await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { dueDate: null }));
         this.detailDatePickerOpen = false;
@@ -1042,12 +1402,9 @@ const pluginModule = (() => {
 
     taskDetailDateLabel(task) {
       if (!task.dueDate) {
-        return "No date";
+        return "无日期";
       }
-      if (core.isToday(task.dueDate)) {
-        return `Today, ${task.dueDate.slice(5)}`;
-      }
-      return task.dueDate;
+      return formatChineseDate(task.dueDate);
     }
 
     defaultDueDateForFilter() {
@@ -1192,30 +1549,85 @@ const pluginModule = (() => {
       this.task = task || {};
       this.onSave = onSave;
       this.onDelete = onDelete;
+      this.checklistOpen = Array.isArray(this.task.subtasks) && this.task.subtasks.length > 0;
     }
 
     onOpen() {
       this.contentEl.empty();
       this.contentEl.addClass("daily-flow-modal");
-      this.contentEl.appendChild(createEl("h2", "", this.task.id ? "Edit Task" : "New Task"));
 
-      const title = this.field("Title", "text", this.task.title || "");
-      const date = this.field("Date", "date", this.task.dueDate || "");
-      const noteLabel = createEl("label", "daily-flow-field");
-      noteLabel.appendChild(createEl("span", "", "Note"));
-      const note = createEl("textarea", "daily-flow-input");
+      const card = createEl("section", "daily-flow-modal-card");
+      const header = createEl("div", "daily-flow-modal-header");
+      const date = createEl("input", "daily-flow-modal-date-input");
+      date.type = "date";
+      date.value = this.task.dueDate || core.formatLocalDate(new Date());
+      const dateButton = createEl("button", "daily-flow-modal-date", `▦ ${formatChineseDate(date.value)}`);
+      dateButton.type = "button";
+      dateButton.addEventListener("click", () => {
+        if (typeof date.showPicker === "function") {
+          date.showPicker();
+        } else {
+          date.focus();
+        }
+      });
+      date.addEventListener("change", () => {
+        dateButton.textContent = `▦ ${formatChineseDate(date.value)}`;
+      });
+      header.appendChild(dateButton);
+      header.appendChild(date);
+      header.appendChild(createEl("span", "daily-flow-modal-flag", "⚐"));
+      card.appendChild(header);
+
+      const body = createEl("div", "daily-flow-modal-body");
+      const titleRow = createEl("div", "daily-flow-modal-title-row");
+      const title = createEl("input", "daily-flow-modal-title");
+      title.type = "text";
+      title.placeholder = "准备做什么？";
+      title.value = this.task.title || "";
+      const checklistToggle = createEl("button", "daily-flow-modal-checklist-toggle", "☷");
+      checklistToggle.type = "button";
+      checklistToggle.addEventListener("click", () => {
+        this.task.title = title.value;
+        this.task.dueDate = date.value || null;
+        this.task.note = note.value;
+        if (checklist) {
+          this.task.subtasks = checklist.value.split("\n").map((line) => ({ title: line.trim(), completed: false }));
+        }
+        this.checklistOpen = !this.checklistOpen;
+        this.onOpen();
+      });
+      titleRow.appendChild(title);
+      titleRow.appendChild(checklistToggle);
+      body.appendChild(titleRow);
+
+      const note = createEl("textarea", "daily-flow-modal-note");
+      note.placeholder = "描述";
       note.value = this.task.note || "";
-      noteLabel.appendChild(note);
-      this.contentEl.appendChild(noteLabel);
+      body.appendChild(note);
+
+      let checklist = null;
+      if (this.checklistOpen) {
+        checklist = createEl("textarea", "daily-flow-modal-subtasks");
+        checklist.placeholder = "换行即可添加检查事项";
+        checklist.value = Array.isArray(this.task.subtasks)
+          ? this.task.subtasks.map((subtask) => subtask.title).join("\n")
+          : "";
+        body.appendChild(checklist);
+      }
+      card.appendChild(body);
 
       const actions = createEl("div", "daily-flow-modal-actions");
-      const save = createEl("button", "daily-flow-primary-button", "Save");
+      actions.appendChild(createEl("span", "daily-flow-modal-list", "▣ 收集箱"));
+      const save = createEl("button", "daily-flow-primary-button", "保存");
       save.addEventListener("click", async () => {
         try {
           await this.onSave({
             title: title.value,
             dueDate: date.value || null,
-            note: note.value
+            note: note.value,
+            subtasks: checklist
+              ? checklist.value.split("\n").map((line) => ({ title: line.trim(), completed: false }))
+              : this.task.subtasks || []
           });
           this.close();
         } catch (error) {
@@ -1225,7 +1637,7 @@ const pluginModule = (() => {
       actions.appendChild(save);
 
       if (this.task.id) {
-        const remove = createEl("button", "daily-flow-danger-button", "Delete");
+        const remove = createEl("button", "daily-flow-danger-button", "删除");
         remove.addEventListener("click", async () => {
           await this.onDelete();
           this.close();
@@ -1233,19 +1645,9 @@ const pluginModule = (() => {
         actions.appendChild(remove);
       }
 
-      this.contentEl.appendChild(actions);
+      card.appendChild(actions);
+      this.contentEl.appendChild(card);
       title.focus();
-    }
-
-    field(label, type, value) {
-      const wrapper = createEl("label", "daily-flow-field");
-      wrapper.appendChild(createEl("span", "", label));
-      const input = createEl("input", "daily-flow-input");
-      input.type = type;
-      input.value = value;
-      wrapper.appendChild(input);
-      this.contentEl.appendChild(wrapper);
-      return input;
     }
   }
 
@@ -1341,6 +1743,19 @@ const pluginModule = (() => {
       return value;
     }
     return `${core.formatLocalDate(date)} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function formatChineseDate(value, now = new Date()) {
+    const date = core.parseLocalDate(value);
+    if (!date) {
+      return "无日期";
+    }
+    const monthDay = `${date.getMonth() + 1}月${date.getDate()}日`;
+    if (core.isToday(value, now)) {
+      return `今天, ${monthDay}`;
+    }
+    const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    return `${weekdays[date.getDay()]}, ${monthDay}`;
   }
 
   module.exports = DailyFlowPlugin;

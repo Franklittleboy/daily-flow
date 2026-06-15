@@ -108,6 +108,36 @@ function normalizeSettings(settings) {
   return next;
 }
 
+function normalizeSubtask(subtask) {
+  if (!subtask || typeof subtask !== "object") {
+    return null;
+  }
+  const title = typeof subtask.title === "string" ? subtask.title.trim() : "";
+  if (!title) {
+    return null;
+  }
+  return {
+    id: typeof subtask.id === "string" && subtask.id ? subtask.id : createId("subtask"),
+    title,
+    completed: Boolean(subtask.completed)
+  };
+}
+
+function normalizeAttachment(attachment) {
+  if (!attachment || typeof attachment !== "object") {
+    return null;
+  }
+  const name = typeof attachment.name === "string" ? attachment.name.trim() : "";
+  if (!name) {
+    return null;
+  }
+  return {
+    id: typeof attachment.id === "string" && attachment.id ? attachment.id : createId("attachment"),
+    name,
+    path: typeof attachment.path === "string" ? attachment.path : ""
+  };
+}
+
 function normalizeTask(task) {
   if (!task || typeof task !== "object" || typeof task.title !== "string") {
     return null;
@@ -119,6 +149,9 @@ function normalizeTask(task) {
     dueDate: typeof task.dueDate === "string" ? task.dueDate : null,
     completed: Boolean(task.completed),
     note: typeof task.note === "string" ? task.note : "",
+    kind: task.kind === "note" ? "note" : "task",
+    subtasks: Array.isArray(task.subtasks) ? task.subtasks.map(normalizeSubtask).filter(Boolean) : [],
+    attachments: Array.isArray(task.attachments) ? task.attachments.map(normalizeAttachment).filter(Boolean) : [],
     createdAt: typeof task.createdAt === "string" ? task.createdAt : now,
     updatedAt: typeof task.updatedAt === "string" ? task.updatedAt : now
   };
@@ -175,6 +208,9 @@ function createTask(data, input) {
     dueDate: typeof input.dueDate === "string" ? input.dueDate : null,
     completed: false,
     note: typeof input.note === "string" ? input.note : "",
+    kind: input.kind === "note" ? "note" : "task",
+    subtasks: Array.isArray(input.subtasks) ? input.subtasks.map(normalizeSubtask).filter(Boolean) : [],
+    attachments: Array.isArray(input.attachments) ? input.attachments.map(normalizeAttachment).filter(Boolean) : [],
     createdAt: now,
     updatedAt: now
   });
@@ -196,6 +232,13 @@ function updateTask(data, taskId, changes) {
     title,
     dueDate: Object.hasOwn(changes, "dueDate") ? changes.dueDate || null : next.tasks[index].dueDate,
     note: Object.hasOwn(changes, "note") ? String(changes.note || "") : next.tasks[index].note,
+    kind: Object.hasOwn(changes, "kind") && changes.kind === "note" ? "note" : next.tasks[index].kind,
+    subtasks: Object.hasOwn(changes, "subtasks") && Array.isArray(changes.subtasks)
+      ? changes.subtasks.map(normalizeSubtask).filter(Boolean)
+      : next.tasks[index].subtasks,
+    attachments: Object.hasOwn(changes, "attachments") && Array.isArray(changes.attachments)
+      ? changes.attachments.map(normalizeAttachment).filter(Boolean)
+      : next.tasks[index].attachments,
     updatedAt: new Date().toISOString()
   };
   return next;
