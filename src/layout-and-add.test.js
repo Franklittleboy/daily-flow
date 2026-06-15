@@ -68,7 +68,9 @@ test("task popovers expose TickTick-like subtasks, attachments, focus, and note 
   assert.match(source, /convertTaskToNote\(task\)/);
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*align-items:\s*flex-end/s);
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*justify-content:\s*flex-start/s);
-  assert.match(styles, /\.daily-flow-modal-card,\s*\.daily-flow-detail-card\s*{[^}]*width:\s*min\(800px,\s*calc\(100% - 36px\)\)/s);
+  assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
+  assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*min-height:\s*360px/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*width:\s*min\(800px,\s*calc\(100% - 36px\)\)/s);
   assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*26px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*right:\s*34px/s);
