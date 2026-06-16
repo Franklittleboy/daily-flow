@@ -8,15 +8,15 @@ test("DailyFlow keeps navigation on the right and main content first", () => {
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
   assert.doesNotMatch(source, /renderRail\(\)/);
-  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(168px,\s*204px\)/);
+  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+64px/);
   assert.match(styles, /\.daily-flow-main\s*{[^}]*grid-column:\s*1/s);
   assert.doesNotMatch(styles, /\.daily-flow-rail\s*{/);
   assert.match(styles, /\.daily-flow-middle\s*{[^}]*grid-column:\s*2/s);
   assert.match(source, /daily-flow-nav-icon/);
   assert.match(source, /item\.setAttribute\("title", label\)/);
-  assert.doesNotMatch(styles, /\.daily-flow-middle-title\s*{[^}]*display:\s*none/s);
-  assert.doesNotMatch(styles, /\.daily-flow-nav-label\s*{[^}]*display:\s*none/s);
-  assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*width:\s*100%/s);
+  assert.match(styles, /\.daily-flow-middle-title\s*{[^}]*display:\s*none/s);
+  assert.match(styles, /\.daily-flow-nav-label\s*{[^}]*display:\s*none/s);
+  assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*width:\s*42px/s);
 });
 
 test("DailyFlow exposes direct add affordances beyond the header plus button", () => {
@@ -56,15 +56,16 @@ test("month view renders readable task buttons inside date cells", () => {
 test("calendar layout gives more width and height to the calendar grid", () => {
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
-  assert.match(styles, /\.daily-flow-main\s*{[^}]*padding:\s*14px 18px/s);
+  assert.match(styles, /\.daily-flow-main\s*{[^}]*padding:\s*0/s);
+  assert.match(styles, /\.daily-flow-main\.is-calendar,\s*\.daily-flow-main\.is-focus\s*{[^}]*padding:\s*22px 30px/s);
   assert.match(styles, /\.daily-flow-main\s*{[^}]*display:\s*flex/s);
   assert.match(styles, /\.daily-flow-main\s*{[^}]*flex-direction:\s*column/s);
-  assert.match(styles, /\.daily-flow-header\s*{[^}]*margin-bottom:\s*10px/s);
+  assert.match(styles, /\.daily-flow-header\s*{[^}]*margin-bottom:\s*18px/s);
   assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*flex:\s*1 1 auto/s);
   assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*min-height:\s*0/s);
   assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*grid-auto-rows:\s*minmax\(0,\s*1fr\)/s);
-  assert.match(styles, /\.daily-flow-middle\s*{[^}]*padding:\s*18px 12px/s);
-  assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*min-height:\s*32px/s);
+  assert.match(styles, /\.daily-flow-middle\s*{[^}]*padding:\s*18px 10px/s);
+  assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*min-height:\s*42px/s);
 });
 
 test("calendar task detail popover supports completion and date picking", () => {

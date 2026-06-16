@@ -13,7 +13,7 @@
 
 The local `0.4.0` release includes:
 
-- Removed the middle icon rail. Navigation is now only the right text sidebar.
+- Navigation uses the narrow right icon rail from the latest task-detail polish.
 - Focus page was redesigned toward the TickTick pomodoro page:
   - title `番茄专注`
   - tabs `番茄计时` and `正计时`
@@ -136,7 +136,7 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
-  Status 2026-06-16: prepared GitHub publication as `0.4.0` from `.worktrees/release-polish`. Merged the latest `feature/task-detail-popover` commits into the existing `0.3.0` release baseline while preserving the published calendar, week, focus, and right-side text navigation layout; updated `CHANGELOG.md`, `versions.json`, and `release-notes/0.4.0.md`; final tests, syntax check, and build pass locally before tag/release.
+  Status 2026-06-16: corrected the local `0.4.0` merge preview in `.worktrees/release-polish` to follow the latest `feature/task-detail-popover` view decisions, including the narrow right icon rail and task detail side-panel layout; updated `CHANGELOG.md`, `release-notes/0.4.0.md`, and the layout regression tests. This correction is local preview work only unless Frank explicitly asks to publish another GitHub update.
   Only after the feature batch is approved: merge branches, update changelog/release notes, build, tag, push, and create GitHub Release.
 
 ## Rules For Feature Sessions
