@@ -24,14 +24,18 @@ test("normalizeData fills missing data with safe defaults", () => {
   assert.equal(data.settings.weekStartsOn, "monday");
   assert.equal(data.settings.showCompletedTasks, false);
   assert.equal(data.settings.taskListPaneWidth, 540);
+  assert.equal(data.settings.taskNavPaneWidth, 320);
 });
 
 test("settings preserve the persisted task detail split width", () => {
-  const data = updateSettings(createEmptyData(), { taskListPaneWidth: 680 });
+  const data = updateSettings(createEmptyData(), { taskListPaneWidth: 680, taskNavPaneWidth: 280 });
   assert.equal(data.settings.taskListPaneWidth, 680);
+  assert.equal(data.settings.taskNavPaneWidth, 280);
 
   assert.equal(normalizeData({ settings: { taskListPaneWidth: 200 } }).settings.taskListPaneWidth, 360);
   assert.equal(normalizeData({ settings: { taskListPaneWidth: 900 } }).settings.taskListPaneWidth, 760);
+  assert.equal(normalizeData({ settings: { taskNavPaneWidth: 120 } }).settings.taskNavPaneWidth, 240);
+  assert.equal(normalizeData({ settings: { taskNavPaneWidth: 520 } }).settings.taskNavPaneWidth, 420);
 });
 
 test("createTask adds a dated incomplete task", () => {
@@ -166,6 +170,7 @@ test("updateSettings merges supported settings", () => {
     defaultFocusMinutes: 45,
     weekStartsOn: "sunday",
     showCompletedTasks: true,
-    taskListPaneWidth: 540
+    taskListPaneWidth: 540,
+    taskNavPaneWidth: 320
   });
 });

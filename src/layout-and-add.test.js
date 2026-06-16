@@ -12,11 +12,29 @@ test("DailyFlow keeps navigation on the right and main content first", () => {
   assert.match(styles, /\.daily-flow-main\s*{[^}]*grid-column:\s*1/s);
   assert.doesNotMatch(styles, /\.daily-flow-rail\s*{/);
   assert.match(styles, /\.daily-flow-middle\s*{[^}]*grid-column:\s*2/s);
-  assert.match(source, /daily-flow-nav-icon/);
+  assert.match(source, /const navItems = \[\s*\["tasks", "Tasks", "check-square"\],\s*\["calendar", "Calendar", "calendar-days"\],\s*\["focus", "Focus", "target"\]\s*\]/s);
+  assert.match(source, /createTickTickIcon\(icon\)/);
   assert.match(source, /item\.setAttribute\("title", label\)/);
   assert.match(styles, /\.daily-flow-middle-title\s*{[^}]*display:\s*none/s);
   assert.match(styles, /\.daily-flow-nav-label\s*{[^}]*display:\s*none/s);
   assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*width:\s*42px/s);
+});
+
+test("task pages add a TickTick-like list column with a persisted draggable split", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /renderTaskSidebar\(\)/);
+  assert.match(source, /daily-flow-task-sidebar/);
+  assert.match(source, /saveTaskNavPaneWidth/);
+  assert.match(source, /taskNavPaneWidth/);
+  assert.match(source, /const navResizer = createEl\("div", "daily-flow-task-nav-resizer"\)/);
+  assert.match(source, /this\.taskFilter = filter/);
+  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-nav-width,\s*320px\)\s+6px\s+var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-task-sidebar\s*{[^}]*padding:\s*22px 14px/s);
+  assert.match(styles, /\.daily-flow-task-nav-resizer\s*{[^}]*cursor:\s*col-resize/s);
+  assert.match(styles, /\.daily-flow-main\.is-calendar,\s*\.daily-flow-main\.is-focus\s*{[^}]*padding:\s*22px 30px/s);
+  assert.doesNotMatch(source, /renderCalendar\(main\)[\s\S]{0,200}renderTaskSidebar/);
 });
 
 test("DailyFlow exposes direct add affordances beyond the header plus button", () => {
@@ -115,7 +133,7 @@ test("task detail content matches TickTick-like side panel and calendar popover 
 
   assert.match(source, /const board = createEl\("div", "daily-flow-task-board"\)/);
   assert.match(source, /const list = createEl\("div", "daily-flow-task-list-pane"\)/);
-  assert.match(source, /const resizer = createEl\("div", "daily-flow-task-resizer"\)/);
+  assert.match(source, /const detailResizer = createEl\("div", "daily-flow-task-resizer"\)/);
   assert.match(source, /saveTaskListPaneWidth/);
   assert.match(source, /taskListPaneWidth/);
   assert.match(source, /this\.renderTaskDetail\(board,\s*"panel"\)/);
@@ -128,7 +146,7 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(source, /renderTaskNote\(task\)/);
   assert.match(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
   assert.match(source, /date\.addClass\("is-overdue"\)/);
-  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-nav-width,\s*320px\)\s+6px\s+var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.daily-flow-task-resizer\s*{[^}]*cursor:\s*col-resize/s);
   assert.match(styles, /\.daily-flow-task-list-pane\s*{[^}]*overflow-x:\s*hidden/s);
   assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*border:\s*0/s);
@@ -143,6 +161,27 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*margin-top:\s*auto/s);
   assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*border-top:\s*0/s);
   assert.match(styles, /\.daily-flow-detail-date\.is-overdue\s*{[^}]*color:\s*#ef4444/s);
+});
+
+test("task rows expose a minimal TickTick-like context menu with date shortcuts", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /row\.addEventListener\("contextmenu"/);
+  assert.match(source, /openTaskContextMenu\(task,\s*event\)/);
+  assert.match(source, /renderTaskContextMenu\(main\)/);
+  assert.match(source, /daily-flow-task-context-menu/);
+  assert.match(source, /setTaskDueDate\(task,\s*core\.formatLocalDate\(new Date\(\)\)\)/);
+  assert.match(source, /setTaskDueDate\(task,\s*core\.formatLocalDate\(core\.addDays\(new Date\(\),\s*1\)\)\)/);
+  assert.match(source, /setTaskDueDate\(task,\s*core\.formatLocalDate\(core\.addDays\(new Date\(\),\s*7\)\)\)/);
+  assert.match(source, /setTaskDueDate\(task,\s*null\)/);
+  assert.match(source, /daily-flow-context-placeholder/);
+  assert.match(source, /添加子任务/);
+  assert.match(source, /转换为笔记/);
+  assert.match(source, /删除/);
+  assert.match(styles, /\.daily-flow-task-context-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
+  assert.match(styles, /\.daily-flow-context-date-row\s*{[^}]*grid-template-columns:\s*repeat\(5,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-context-placeholder\s*{[^}]*opacity:\s*0\.54/s);
 });
 
 test("calendar task bars use deeper todo color and lighter completed color", () => {
