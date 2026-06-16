@@ -23,6 +23,15 @@ test("normalizeData fills missing data with safe defaults", () => {
   assert.equal(data.settings.defaultFocusMinutes, 45);
   assert.equal(data.settings.weekStartsOn, "monday");
   assert.equal(data.settings.showCompletedTasks, false);
+  assert.equal(data.settings.taskListPaneWidth, 540);
+});
+
+test("settings preserve the persisted task detail split width", () => {
+  const data = updateSettings(createEmptyData(), { taskListPaneWidth: 680 });
+  assert.equal(data.settings.taskListPaneWidth, 680);
+
+  assert.equal(normalizeData({ settings: { taskListPaneWidth: 200 } }).settings.taskListPaneWidth, 360);
+  assert.equal(normalizeData({ settings: { taskListPaneWidth: 900 } }).settings.taskListPaneWidth, 760);
 });
 
 test("createTask adds a dated incomplete task", () => {
@@ -61,13 +70,18 @@ test("tasks preserve subtasks, attachments, and note mode", () => {
     kind: "note",
     note: "记录你的想法",
     subtasks: [{ id: data.tasks[0].subtasks[0].id, title: "Confirm scope", completed: true }],
-    attachments: [{ name: "brief.pdf", path: "/tmp/brief.pdf" }, { name: "notes.txt", path: "/tmp/notes.txt" }]
+    attachments: [
+      { name: "brief.pdf", path: "/tmp/brief.pdf" },
+      { name: "report.png", path: "report.png", mime: "image/png", dataUrl: "data:image/png;base64,abc123" }
+    ]
   });
 
   const updated = data.tasks[0];
   assert.equal(updated.kind, "note");
   assert.equal(updated.subtasks[0].completed, true);
   assert.equal(updated.attachments.length, 2);
+  assert.equal(updated.attachments[1].mime, "image/png");
+  assert.equal(updated.attachments[1].dataUrl, "data:image/png;base64,abc123");
 });
 
 test("createTask rejects an empty title", () => {
@@ -151,6 +165,7 @@ test("updateSettings merges supported settings", () => {
   assert.deepEqual(data.settings, {
     defaultFocusMinutes: 45,
     weekStartsOn: "sunday",
-    showCompletedTasks: true
+    showCompletedTasks: true,
+    taskListPaneWidth: 540
   });
 });

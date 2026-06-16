@@ -12,6 +12,11 @@ test("DailyFlow keeps navigation on the right and main content first", () => {
   assert.match(styles, /\.daily-flow-main\s*{[^}]*grid-column:\s*1/s);
   assert.doesNotMatch(styles, /\.daily-flow-rail\s*{/);
   assert.match(styles, /\.daily-flow-middle\s*{[^}]*grid-column:\s*2/s);
+  assert.match(source, /daily-flow-nav-icon/);
+  assert.match(source, /item\.setAttribute\("title", label\)/);
+  assert.doesNotMatch(styles, /\.daily-flow-middle-title\s*{[^}]*display:\s*none/s);
+  assert.doesNotMatch(styles, /\.daily-flow-nav-label\s*{[^}]*display:\s*none/s);
+  assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*width:\s*100%/s);
 });
 
 test("DailyFlow exposes direct add affordances beyond the header plus button", () => {
@@ -67,7 +72,7 @@ test("calendar task detail popover supports completion and date picking", () => 
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
   assert.match(source, /openTaskDetail\(task\)/);
-  assert.match(source, /renderTaskDetail\(main\)/);
+  assert.match(source, /renderTaskDetail\(main,\s*"popover"\)/);
   assert.match(source, /daily-flow-detail-check/);
   assert.match(source, /core\.completeTask\(this\.plugin\.data,\s*task\.id,\s*checkbox\.checked\)/);
   assert.match(source, /daily-flow-detail-date-picker/);
@@ -106,6 +111,66 @@ test("task popovers expose TickTick-like subtasks, attachments, focus, and note 
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*bottom:\s*90px/s);
   assert.match(styles, /\.daily-flow-subtask-row\s*{[^}]*grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.daily-flow-note-body\s*{[^}]*min-height:\s*150px/s);
+});
+
+test("task detail views show image attachment previews instead of only file names", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /readAttachmentFile\(file\)/);
+  assert.match(source, /dataUrl/);
+  assert.match(source, /renderAttachments\(task\.attachments,\s*\(attachment\) => this\.openImagePreview\(attachment\)\)/);
+  assert.match(source, /renderAttachments\(this\.task\.attachments/);
+  assert.match(source, /isImageAttachment\(attachment\)/);
+  assert.match(source, /createEl\("img", "daily-flow-attachment-image"/);
+  assert.match(source, /openImagePreview\(attachment\)/);
+  assert.match(source, /renderImagePreview\(main\)/);
+  assert.match(source, /imagePreviewScale/);
+  assert.match(source, /daily-flow-attachment-more/);
+  assert.match(source, /getAttachmentSource\(attachment\)/);
+  assert.match(styles, /\.daily-flow-attachments\s*{[^}]*flex-direction:\s*column/s);
+  assert.match(styles, /\.daily-flow-attachment-preview\s*{[^}]*position:\s*relative/s);
+  assert.match(styles, /\.daily-flow-attachment-image\s*{[^}]*width:\s*100%/s);
+  assert.match(styles, /\.daily-flow-attachment-image\s*{[^}]*object-fit:\s*cover/s);
+  assert.match(styles, /\.daily-flow-attachment-more\s*{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.daily-flow-image-preview-layer\s*{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.daily-flow-image-preview-image\s*{[^}]*transform:\s*scale\(var\(--daily-flow-image-scale\)\)/s);
+});
+
+test("task detail content matches TickTick-like side panel and calendar popover layout", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /const board = createEl\("div", "daily-flow-task-board"\)/);
+  assert.match(source, /const list = createEl\("div", "daily-flow-task-list-pane"\)/);
+  assert.match(source, /const resizer = createEl\("div", "daily-flow-task-resizer"\)/);
+  assert.match(source, /saveTaskListPaneWidth/);
+  assert.match(source, /taskListPaneWidth/);
+  assert.match(source, /this\.renderTaskDetail\(board,\s*"panel"\)/);
+  assert.match(source, /this\.renderTaskDetail\(main,\s*"popover"\)/);
+  assert.match(source, /body\.addEventListener\("click", \(\) => this\.openTaskDetail\(task\)\)/);
+  assert.match(source, /card\.addClass\(`is-\$\{presentation\}`\)/);
+  assert.match(source, /daily-flow-detail-title-row/);
+  assert.match(source, /daily-flow-detail-menu-button/);
+  assert.match(source, /daily-flow-detail-content/);
+  assert.match(source, /renderTaskNote\(task\)/);
+  assert.match(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
+  assert.match(source, /date\.addClass\("is-overdue"\)/);
+  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-task-resizer\s*{[^}]*cursor:\s*col-resize/s);
+  assert.match(styles, /\.daily-flow-task-list-pane\s*{[^}]*overflow-x:\s*hidden/s);
+  assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*border:\s*0/s);
+  assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*box-shadow:\s*none/s);
+  assert.match(styles, /\.daily-flow-detail-card\.is-popover\s*{[^}]*border:\s*0/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*display:\s*flex/s);
+  assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*32px 34px/s);
+  assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+34px/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*border:\s*0 !important/s);
+  assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-note,\s*\.daily-flow-note-body,\s*\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*box-shadow:\s*none !important/s);
+  assert.match(styles, /\.daily-flow-detail-date\s*{[^}]*background:\s*transparent/s);
+  assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*margin-top:\s*auto/s);
+  assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*border-top:\s*0/s);
+  assert.match(styles, /\.daily-flow-detail-date\.is-overdue\s*{[^}]*color:\s*#ef4444/s);
 });
 
 test("calendar task bars use deeper todo color and lighter completed color", () => {
@@ -152,7 +217,7 @@ test("task list rows use a single readable line with right-side date", () => {
 
   assert.match(source, /daily-flow-task-date/);
   assert.doesNotMatch(source, /daily-flow-task-meta/);
-  assert.match(styles, /grid-template-columns:\s*24px\s+minmax\(220px,\s*1fr\)\s+minmax\(96px,\s*auto\)\s+36px/);
+  assert.match(styles, /grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)\s+minmax\(74px,\s*auto\)\s+28px/);
   assert.match(styles, /\.daily-flow-task-title\s*{[^}]*white-space:\s*normal/s);
   assert.match(styles, /\.daily-flow-task-date\s*{[^}]*justify-self:\s*end/s);
 });

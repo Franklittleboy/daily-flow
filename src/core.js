@@ -1,7 +1,8 @@
 const DEFAULT_SETTINGS = {
   defaultFocusMinutes: 25,
   weekStartsOn: "monday",
-  showCompletedTasks: false
+  showCompletedTasks: false,
+  taskListPaneWidth: 540
 };
 
 function pad2(value) {
@@ -165,6 +166,9 @@ function normalizeSettings(settings) {
   if (typeof settings.showCompletedTasks === "boolean") {
     next.showCompletedTasks = settings.showCompletedTasks;
   }
+  if (Number.isFinite(settings.taskListPaneWidth)) {
+    next.taskListPaneWidth = Math.min(760, Math.max(360, Math.round(settings.taskListPaneWidth)));
+  }
   return next;
 }
 
@@ -194,7 +198,9 @@ function normalizeAttachment(attachment) {
   return {
     id: typeof attachment.id === "string" && attachment.id ? attachment.id : createId("attachment"),
     name,
-    path: typeof attachment.path === "string" ? attachment.path : ""
+    path: typeof attachment.path === "string" ? attachment.path : "",
+    mime: typeof attachment.mime === "string" ? attachment.mime : "",
+    dataUrl: typeof attachment.dataUrl === "string" ? attachment.dataUrl : ""
   };
 }
 

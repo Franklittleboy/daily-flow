@@ -2,6 +2,9 @@ const { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("
 const core = require("./core");
 
 const VIEW_TYPE_DAILY_FLOW = "daily-flow-view";
+const IMAGE_ATTACHMENT_EXTENSIONS = new Set(["avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "webp"]);
+const TASK_LIST_PANE_MIN_WIDTH = 360;
+const TASK_LIST_PANE_MAX_WIDTH = 760;
 
 class DailyFlowPlugin extends Plugin {
   async onload() {
@@ -54,6 +57,8 @@ class DailyFlowView extends ItemView {
     this.detailSubtasksOpen = false;
     this.detailPickerAnchorDate = new Date();
     this.weekAllDayHeight = null;
+    this.activeImagePreview = null;
+    this.imagePreviewScale = 1;
     this.focus = {
       taskId: null,
       running: false,
@@ -100,6 +105,7 @@ class DailyFlowView extends ItemView {
     shell.appendChild(this.renderMiddle());
 
     const main = createEl("main", "daily-flow-main");
+    main.addClass(`is-${this.section}`);
     shell.appendChild(main);
 
     if (this.section === "calendar") {
@@ -110,6 +116,7 @@ class DailyFlowView extends ItemView {
       this.renderTasks(main);
     }
     this.renderTaskComposer(main);
+    this.renderImagePreview(main);
   }
 
   renderMiddle() {
@@ -122,19 +129,22 @@ class DailyFlowView extends ItemView {
     const inboxCount = this.plugin.data.tasks.filter((task) => !task.completed).length;
 
     const navItems = [
-      ["tasks", "today", "Today", todayCount],
-      ["tasks", "next7", "Next 7 Days", weekCount],
-      ["tasks", "inbox", "Inbox", inboxCount],
-      ["calendar", "calendar", "Calendar", null],
-      ["focus", "focus", "Focus", null]
+      ["tasks", "today", "Today", todayCount, "▣"],
+      ["tasks", "next7", "Next 7 Days", weekCount, "▤"],
+      ["tasks", "inbox", "Inbox", inboxCount, "▱"],
+      ["calendar", "calendar", "Calendar", null, "▦"],
+      ["focus", "focus", "Focus", null, "◎"]
     ];
 
-    for (const [section, filter, label, count] of navItems) {
+    for (const [section, filter, label, count, icon] of navItems) {
       const item = createEl("button", "daily-flow-nav-item");
+      item.setAttribute("title", label);
+      item.setAttribute("aria-label", label);
       if (this.section === section && (section !== "tasks" || this.taskFilter === filter)) {
         item.addClass("is-active");
       }
-      item.appendChild(createEl("span", "", label));
+      item.appendChild(createEl("span", "daily-flow-nav-icon", icon));
+      item.appendChild(createEl("span", "daily-flow-nav-label", label));
       if (count !== null) {
         item.appendChild(createEl("span", "daily-flow-count", String(count)));
       }
@@ -158,26 +168,72 @@ class DailyFlowView extends ItemView {
       : this.taskFilter === "next7"
         ? "Next 7 Days"
         : "Inbox";
-    main.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
+
+    const board = createEl("div", "daily-flow-task-board");
+    board.style.setProperty("--daily-flow-task-list-width", `${this.getTaskListPaneWidth()}px`);
+    const list = createEl("div", "daily-flow-task-list-pane");
+    list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
 
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
-      this.renderTaskGroup(main, "Overdue", groups.overdue);
-      this.renderTaskGroup(main, "Today", groups.today);
-      this.renderTaskGroup(main, "Future", groups.future);
-      this.renderTaskGroup(main, "No Date", groups.noDate);
+      this.renderTaskGroup(list, "Overdue", groups.overdue);
+      this.renderTaskGroup(list, "Today", groups.today);
+      this.renderTaskGroup(list, "Future", groups.future);
+      this.renderTaskGroup(list, "No Date", groups.noDate);
     } else {
       const tasks = this.taskFilter === "today"
         ? core.getTodayTasks(this.plugin.data.tasks)
         : core.getNextDaysTasks(this.plugin.data.tasks, 7);
-      this.renderTaskGroup(main, label, tasks);
+      this.renderTaskGroup(list, label, tasks);
     }
 
-    main.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
+    list.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
 
     if (this.plugin.data.settings.showCompletedTasks) {
-      this.renderTaskGroup(main, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
+      this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
+    board.appendChild(list);
+    const resizer = createEl("div", "daily-flow-task-resizer");
+    this.bindTaskListResizer(board, resizer);
+    board.appendChild(resizer);
+    this.renderTaskDetail(board, "panel");
+    main.appendChild(board);
+  }
+
+  getTaskListPaneWidth() {
+    return clampTaskListPaneWidth(this.plugin.data.settings.taskListPaneWidth);
+  }
+
+  bindTaskListResizer(board, resizer) {
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "vertical");
+    resizer.setAttribute("title", "Resize task list");
+    resizer.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = this.getTaskListPaneWidth();
+      let nextWidth = startWidth;
+      board.addClass("is-resizing");
+
+      const onMove = (moveEvent) => {
+        nextWidth = clampTaskListPaneWidth(startWidth + moveEvent.clientX - startX);
+        board.style.setProperty("--daily-flow-task-list-width", `${nextWidth}px`);
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        board.removeClass("is-resizing");
+        this.saveTaskListPaneWidth(nextWidth);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  }
+
+  async saveTaskListPaneWidth(width) {
+    await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+      taskListPaneWidth: clampTaskListPaneWidth(width)
+    }));
   }
 
   renderHeader(title, onAdd) {
@@ -249,6 +305,9 @@ class DailyFlowView extends ItemView {
 
   renderTaskRow(task) {
     const row = createEl("div", "daily-flow-task-row");
+    if (task.id === this.activeTaskDetailId) {
+      row.addClass("is-selected");
+    }
     const checkbox = createEl("input", "daily-flow-check");
     checkbox.type = "checkbox";
     checkbox.checked = task.completed;
@@ -262,10 +321,10 @@ class DailyFlowView extends ItemView {
     if (task.note) {
       body.setAttribute("title", task.note);
     }
-    body.addEventListener("click", () => this.openTaskModal(task));
+    body.addEventListener("click", () => this.openTaskDetail(task));
 
     const date = createEl("button", "daily-flow-task-date", this.taskDateLabel(task));
-    date.addEventListener("click", () => this.openTaskModal(task));
+    date.addEventListener("click", () => this.openTaskDetail(task));
 
     const timer = createButton("◎", "Focus on task", false);
     timer.addEventListener("click", () => {
@@ -303,7 +362,7 @@ class DailyFlowView extends ItemView {
     } else {
       this.renderWeek(main);
     }
-    this.renderTaskDetail(main);
+    this.renderTaskDetail(main, "popover");
   }
 
   renderMonth(main) {
@@ -790,7 +849,7 @@ class DailyFlowView extends ItemView {
     this.render();
   }
 
-  renderTaskDetail(main) {
+  renderTaskDetail(container, presentation = "popover") {
     if (!this.activeTaskDetailId) {
       return;
     }
@@ -801,17 +860,20 @@ class DailyFlowView extends ItemView {
       return;
     }
 
-    const layer = createEl("div", "daily-flow-detail-layer");
-    layer.addEventListener("click", (event) => {
-      if (event.target === layer) {
-        this.activeTaskDetailId = null;
-        this.detailDatePickerOpen = false;
-        this.detailMenuOpen = false;
-        this.render();
-      }
-    });
+    const layer = presentation === "popover" ? createEl("div", "daily-flow-detail-layer") : null;
+    if (layer) {
+      layer.addEventListener("click", (event) => {
+        if (event.target === layer) {
+          this.activeTaskDetailId = null;
+          this.detailDatePickerOpen = false;
+          this.detailMenuOpen = false;
+          this.render();
+        }
+      });
+    }
 
     const card = createEl("section", "daily-flow-detail-card");
+    card.addClass(`is-${presentation}`);
     card.addEventListener("click", (event) => event.stopPropagation());
 
     const header = createEl("div", "daily-flow-detail-header");
@@ -830,6 +892,9 @@ class DailyFlowView extends ItemView {
     header.appendChild(createEl("span", "daily-flow-detail-separator", ""));
 
     const date = createEl("button", "daily-flow-detail-date", this.taskDetailDateLabel(task));
+    if (task.dueDate && task.dueDate < core.formatLocalDate(new Date()) && !task.completed) {
+      date.addClass("is-overdue");
+    }
     date.addEventListener("click", () => {
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
@@ -840,6 +905,8 @@ class DailyFlowView extends ItemView {
     header.appendChild(createEl("span", "daily-flow-detail-flag", "⚐"));
     card.appendChild(header);
 
+    const content = createEl("div", "daily-flow-detail-content");
+    const titleRow = createEl("div", "daily-flow-detail-title-row");
     const title = createEl("input", "daily-flow-detail-title");
     title.type = "text";
     title.value = task.title;
@@ -862,42 +929,23 @@ class DailyFlowView extends ItemView {
         }
       }
     });
-    card.appendChild(title);
+    titleRow.appendChild(title);
+    const menuButton = createEl("button", "daily-flow-detail-menu-button", "☰");
+    menuButton.addEventListener("click", () => {
+      this.detailMenuOpen = !this.detailMenuOpen;
+      this.detailDatePickerOpen = false;
+      this.render();
+    });
+    titleRow.appendChild(menuButton);
+    content.appendChild(titleRow);
 
-    if (task.kind === "note") {
-      const note = createEl("textarea", "daily-flow-note-body");
-      note.placeholder = "记录你的想法，或 使用模板";
-      note.value = task.note || "";
-      note.addEventListener("blur", async () => {
-        if (note.value !== task.note) {
-          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
-          this.render();
-        }
-      });
-      card.appendChild(note);
-    } else {
-      const note = createEl("textarea", "daily-flow-detail-note");
-      note.placeholder = "描述";
-      note.value = task.note || "";
-      note.addEventListener("blur", async () => {
-        if (note.value !== task.note) {
-          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
-          this.render();
-        }
-      });
-      card.appendChild(note);
-      if (this.detailSubtasksOpen || task.subtasks.length > 0) {
-        card.appendChild(this.renderSubtasks(task));
-      }
+    content.appendChild(this.renderTaskNote(task));
+    if (task.kind !== "note" && (this.detailSubtasksOpen || task.subtasks.length > 0)) {
+      content.appendChild(this.renderSubtasks(task, this.detailSubtasksOpen));
     }
 
-    if (task.attachments.length > 0) {
-      const attachments = createEl("div", "daily-flow-attachments");
-      for (const attachment of task.attachments) {
-        attachments.appendChild(createEl("span", "daily-flow-attachment", `⌘ ${attachment.name}`));
-      }
-      card.appendChild(attachments);
-    }
+    content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
+    card.appendChild(content);
 
     if (this.detailDatePickerOpen) {
       card.appendChild(this.renderDetailDatePicker(task));
@@ -922,11 +970,28 @@ class DailyFlowView extends ItemView {
       card.appendChild(this.renderDetailMenu(task));
     }
 
-    layer.appendChild(card);
-    main.appendChild(layer);
+    if (layer) {
+      layer.appendChild(card);
+      container.appendChild(layer);
+    } else {
+      container.appendChild(card);
+    }
   }
 
-  renderSubtasks(task) {
+  renderTaskNote(task) {
+    const note = createEl("textarea", task.kind === "note" ? "daily-flow-note-body" : "daily-flow-detail-note");
+    note.placeholder = task.kind === "note" ? "记录你的想法，或 使用模板" : "描述";
+    note.value = task.note || "";
+    note.addEventListener("blur", async () => {
+      if (note.value !== task.note) {
+        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
+        this.render();
+      }
+    });
+    return note;
+  }
+
+  renderSubtasks(task, showAdd) {
     const section = createEl("div", "daily-flow-subtasks");
     for (const subtask of task.subtasks) {
       const row = createEl("label", "daily-flow-subtask-row");
@@ -953,22 +1018,24 @@ class DailyFlowView extends ItemView {
       section.appendChild(row);
     }
 
-    const add = createEl("input", "daily-flow-subtask-add");
-    add.type = "text";
-    add.placeholder = "换行即可添加检查事项";
-    add.addEventListener("keydown", async (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const title = add.value.trim();
-        if (title) {
-          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-            subtasks: [...task.subtasks, { title, completed: false }]
-          }));
-          this.render();
+    if (showAdd) {
+      const add = createEl("input", "daily-flow-subtask-add");
+      add.type = "text";
+      add.placeholder = "换行即可添加检查事项";
+      add.addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const title = add.value.trim();
+          if (title) {
+            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
+              subtasks: [...task.subtasks, { title, completed: false }]
+            }));
+            this.render();
+          }
         }
-      }
-    });
-    section.appendChild(add);
+      });
+      section.appendChild(add);
+    }
     return section;
   }
 
@@ -1025,13 +1092,98 @@ class DailyFlowView extends ItemView {
       if (!file) {
         return;
       }
+      const attachment = {
+        name: file.name,
+        path: file.path || "",
+        mime: file.type || ""
+      };
+      if (isLikelyImageAttachment(file.name, file.type)) {
+        attachment.dataUrl = await readAttachmentFile(file);
+      }
       await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-        attachments: [...task.attachments, { name: file.name, path: file.path || file.name }]
+        attachments: [...task.attachments, attachment]
       }));
       this.detailMenuOpen = false;
       this.render();
     });
     input.click();
+  }
+
+  openImagePreview(attachment) {
+    const source = getAttachmentSource(attachment);
+    if (!source) {
+      return;
+    }
+    this.activeImagePreview = attachment;
+    this.imagePreviewScale = 1;
+    this.detailMenuOpen = false;
+    this.render();
+  }
+
+  closeImagePreview() {
+    this.activeImagePreview = null;
+    this.imagePreviewScale = 1;
+    this.render();
+  }
+
+  setImagePreviewScale(scale) {
+    this.imagePreviewScale = Math.min(3, Math.max(0.5, Math.round(scale * 100) / 100));
+    this.render();
+  }
+
+  renderImagePreview(container) {
+    if (!this.activeImagePreview) {
+      return;
+    }
+    const source = getAttachmentSource(this.activeImagePreview);
+    if (!source) {
+      return;
+    }
+
+    const layer = createEl("div", "daily-flow-image-preview-layer");
+    layer.addEventListener("click", (event) => {
+      if (event.target === layer) {
+        this.closeImagePreview();
+      }
+    });
+
+    const card = createEl("div", "daily-flow-image-preview-card");
+    card.addEventListener("click", (event) => event.stopPropagation());
+    const toolbar = createEl("div", "daily-flow-image-preview-toolbar");
+    const close = createEl("button", "daily-flow-image-preview-close", "×");
+    close.setAttribute("aria-label", "Close image preview");
+    close.addEventListener("click", () => this.closeImagePreview());
+    toolbar.appendChild(close);
+    toolbar.appendChild(createEl("span", "daily-flow-image-preview-title", this.activeImagePreview.name || "Image"));
+    const controls = createEl("div", "daily-flow-image-preview-controls");
+    const zoomOut = createEl("button", "daily-flow-image-preview-control", "−");
+    zoomOut.setAttribute("aria-label", "Zoom out");
+    zoomOut.addEventListener("click", () => this.setImagePreviewScale(this.imagePreviewScale - 0.25));
+    const reset = createEl("button", "daily-flow-image-preview-control", `${Math.round(this.imagePreviewScale * 100)}%`);
+    reset.setAttribute("aria-label", "Reset zoom");
+    reset.addEventListener("click", () => this.setImagePreviewScale(1));
+    const zoomIn = createEl("button", "daily-flow-image-preview-control", "+");
+    zoomIn.setAttribute("aria-label", "Zoom in");
+    zoomIn.addEventListener("click", () => this.setImagePreviewScale(this.imagePreviewScale + 0.25));
+    controls.appendChild(zoomOut);
+    controls.appendChild(reset);
+    controls.appendChild(zoomIn);
+    toolbar.appendChild(controls);
+    card.appendChild(toolbar);
+
+    const stage = createEl("div", "daily-flow-image-preview-stage");
+    stage.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      this.setImagePreviewScale(this.imagePreviewScale + (event.deltaY < 0 ? 0.1 : -0.1));
+    }, { passive: false });
+    stage.style.setProperty("--daily-flow-image-scale", String(this.imagePreviewScale));
+    const image = createEl("img", "daily-flow-image-preview-image");
+    image.src = source;
+    image.alt = this.activeImagePreview.name || "Image preview";
+    stage.appendChild(image);
+    card.appendChild(stage);
+    layer.appendChild(card);
+    container.appendChild(layer);
   }
 
   startFocusForTask(taskId) {
@@ -1126,6 +1278,14 @@ class DailyFlowView extends ItemView {
   taskDetailDateLabel(task) {
     if (!task.dueDate) {
       return "无日期";
+    }
+    const due = core.parseLocalDate(task.dueDate);
+    const today = new Date();
+    const todayDate = core.formatLocalDate(today);
+    if (due && task.dueDate < todayDate && !task.completed) {
+      const todayStart = core.parseLocalDate(todayDate);
+      const overdueDays = todayStart ? Math.max(1, Math.round((todayStart.getTime() - due.getTime()) / 86400000)) : 1;
+      return `${due.getMonth() + 1}月${due.getDate()}日, 延期${overdueDays}天`;
     }
     return formatChineseDate(task.dueDate);
   }
@@ -1363,6 +1523,7 @@ class TaskModal extends Modal {
         : "";
       body.appendChild(checklist);
     }
+    body.appendChild(renderAttachments(this.task.attachments || []));
     card.appendChild(body);
 
     const actions = createEl("div", "daily-flow-modal-actions");
@@ -1398,6 +1559,90 @@ class TaskModal extends Modal {
     this.contentEl.appendChild(card);
     title.focus();
   }
+}
+
+function renderAttachments(attachments, onPreview) {
+  const section = createEl("div", "daily-flow-attachments");
+  if (!Array.isArray(attachments) || attachments.length === 0) {
+    section.addClass("is-empty");
+    return section;
+  }
+
+  for (const attachment of attachments) {
+    if (isImageAttachment(attachment)) {
+      const preview = createEl("div", "daily-flow-attachment-preview");
+      const image = createEl("img", "daily-flow-attachment-image");
+      image.src = getAttachmentSource(attachment);
+      image.alt = attachment.name;
+      image.loading = "lazy";
+      preview.appendChild(image);
+      preview.addEventListener("click", () => onPreview?.(attachment));
+      const more = createEl("button", "daily-flow-attachment-more", "…");
+      more.setAttribute("aria-label", "Preview image");
+      more.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onPreview?.(attachment);
+      });
+      preview.appendChild(more);
+      section.appendChild(preview);
+    } else {
+      section.appendChild(createEl("span", "daily-flow-attachment", `⌘ ${attachment.name}`));
+    }
+  }
+  return section;
+}
+
+function isImageAttachment(attachment) {
+  const source = getAttachmentSource(attachment);
+  const mime = typeof attachment?.mime === "string" ? attachment.mime : "";
+  const name = typeof attachment?.name === "string" ? attachment.name : "";
+  return Boolean(source && isLikelyImageAttachment(name || source, mime || source));
+}
+
+function getAttachmentSource(attachment) {
+  const dataUrl = typeof attachment?.dataUrl === "string" ? attachment.dataUrl.trim() : "";
+  if (dataUrl) {
+    return dataUrl;
+  }
+  const path = typeof attachment?.path === "string" ? attachment.path.trim() : "";
+  if (!path) {
+    return "";
+  }
+  if (/^(?:app|blob|data|file|https?):/i.test(path)) {
+    return path;
+  }
+  if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) {
+    return `file://${encodeURI(path)}`;
+  }
+  return "";
+}
+
+function isLikelyImageAttachment(name, mime = "") {
+  if (typeof mime === "string" && mime.toLowerCase().startsWith("image/")) {
+    return true;
+  }
+  const value = typeof name === "string" ? name : "";
+  const extension = value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase();
+  return Boolean(extension && IMAGE_ATTACHMENT_EXTENSIONS.has(extension));
+}
+
+function readAttachmentFile(file) {
+  return new Promise((resolve) => {
+    if (typeof FileReader === "undefined") {
+      resolve("");
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      resolve(typeof reader.result === "string" ? reader.result : "");
+    });
+    reader.addEventListener("error", () => resolve(""));
+    reader.readAsDataURL(file);
+  });
+}
+
+function clampTaskListPaneWidth(width) {
+  return Math.min(TASK_LIST_PANE_MAX_WIDTH, Math.max(TASK_LIST_PANE_MIN_WIDTH, Math.round(Number(width) || 540)));
 }
 
 class DailyFlowSettingTab extends PluginSettingTab {

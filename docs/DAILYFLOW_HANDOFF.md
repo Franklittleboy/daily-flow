@@ -3,7 +3,7 @@
 ## Current Baseline
 
 - Project: DailyFlow Obsidian plugin.
-- Current local release version: `0.3.0`.
+- Current local release version: `0.4.0`.
 - Baseline branch to use for parallel feature work: `draft/0.1.10-base`.
 - Do not push to GitHub or create a GitHub Release until Frank explicitly says the feature batch is finished.
 - Local Obsidian plugin directory:
@@ -11,7 +11,7 @@
 
 ## Current Draft State
 
-The local `0.3.0` release includes:
+The local `0.4.0` release includes:
 
 - Removed the middle icon rail. Navigation is now only the right text sidebar.
 - Focus page was redesigned toward the TickTick pomodoro page:
@@ -39,6 +39,9 @@ The local `0.3.0` release includes:
   - new task and existing-task cards use compact DailyFlow floating cards instead of Obsidian's default modal
   - title, note, date, completion state, subtasks, local attachment records, and task actions are available from the card
   - start-focus binding and conversion to a note-style detail view are exposed from the task action flow
+  - task-list pages can open an existing task in a right-side detail panel while calendar pages keep the floating detail card
+  - the task list/detail split is draggable and persisted in settings
+  - image attachments can render preview images and open in an in-plugin zoomable preview
 - Combined local preview workflow exists for merging feature branches into `.worktrees/preview-local`, testing, building, and optionally copying to Obsidian.
 
 ## Parallel Worktrees
@@ -129,11 +132,11 @@ Use this as the first message in a new Codex session:
   Improve month/week layout, colors, spacing, direct creation, and task display density.
 - Task detail popover:
   Status: implemented in `feature/task-detail-popover`.
-  Improved the TickTick-like new task card and calendar task detail card with title/note editing, date picker, completion state, subtasks, local attachment records, a three-dot action menu, start-focus binding, and conversion to a note-style detail view. The new task flow now uses DailyFlow's own in-calendar floating card instead of Obsidian's default modal, and both the composer card and existing-task detail card are kept compact at roughly a 2x2 calendar-cell preview size. Remaining follow-up: design and implement the special option that creates a real `.md` note file from a task.
+  Improved the TickTick-like new task card and task detail views with title/note editing, date picker, completion state, subtasks, local attachment records, image attachment previews, a three-dot action menu, start-focus binding, and conversion to a note-style detail view. Existing tasks now open in a right-side detail panel on task-list pages and in a matching floating detail card on calendar pages, with overdue dates, description text, checklist rows, attachments, and footer tools aligned to the TickTick-style reference. Latest polish stores uploaded image attachments with previewable data, removes excess input boxes/dividers from the detail panel, keeps the list selector at the bottom, widens the task list so rows are complete by default, adds a persisted draggable task/detail split, removes remaining detail panel borders, and opens image attachments in an in-plugin zoomable preview. Remaining follow-up: design and implement the special option that creates a real `.md` note file from a task.
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
-  Status 2026-06-15: prepared GitHub publication as `0.3.0` from `.worktrees/release-polish`. Merged `feature/focus-page`, `feature/calendar-views`, `feature/task-detail-popover`, and `draft/0.1.10-base` preview workflow; updated `CHANGELOG.md`, `versions.json`, and `release-notes/0.3.0.md`; final tests, syntax check, and build pass locally before tag/release.
+  Status 2026-06-16: prepared GitHub publication as `0.4.0` from `.worktrees/release-polish`. Merged the latest `feature/task-detail-popover` commits into the existing `0.3.0` release baseline while preserving the published calendar, week, focus, and right-side text navigation layout; updated `CHANGELOG.md`, `versions.json`, and `release-notes/0.4.0.md`; final tests, syntax check, and build pass locally before tag/release.
   Only after the feature batch is approved: merge branches, update changelog/release notes, build, tag, push, and create GitHub Release.
 
 ## Rules For Feature Sessions
