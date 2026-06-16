@@ -8,10 +8,15 @@ test("DailyFlow keeps navigation on the right and main content first", () => {
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
   assert.doesNotMatch(source, /renderRail\(\)/);
-  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*300px\)/);
+  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+64px/);
   assert.match(styles, /\.daily-flow-main\s*{[^}]*grid-column:\s*1/s);
   assert.doesNotMatch(styles, /\.daily-flow-rail\s*{/);
   assert.match(styles, /\.daily-flow-middle\s*{[^}]*grid-column:\s*2/s);
+  assert.match(source, /daily-flow-nav-icon/);
+  assert.match(source, /item\.setAttribute\("title", label\)/);
+  assert.match(styles, /\.daily-flow-middle-title\s*{[^}]*display:\s*none/s);
+  assert.match(styles, /\.daily-flow-nav-label\s*{[^}]*display:\s*none/s);
+  assert.match(styles, /\.daily-flow-nav-item\s*{[^}]*width:\s*42px/s);
 });
 
 test("DailyFlow exposes direct add affordances beyond the header plus button", () => {
@@ -86,10 +91,13 @@ test("task detail views show image attachment previews instead of only file name
 
   assert.match(source, /readAttachmentFile\(file\)/);
   assert.match(source, /dataUrl/);
-  assert.match(source, /renderAttachments\(task\.attachments\)/);
+  assert.match(source, /renderAttachments\(task\.attachments,\s*\(attachment\) => this\.openImagePreview\(attachment\)\)/);
   assert.match(source, /renderAttachments\(this\.task\.attachments/);
   assert.match(source, /isImageAttachment\(attachment\)/);
   assert.match(source, /createEl\("img", "daily-flow-attachment-image"/);
+  assert.match(source, /openImagePreview\(attachment\)/);
+  assert.match(source, /renderImagePreview\(main\)/);
+  assert.match(source, /imagePreviewScale/);
   assert.match(source, /daily-flow-attachment-more/);
   assert.match(source, /getAttachmentSource\(attachment\)/);
   assert.match(styles, /\.daily-flow-attachments\s*{[^}]*flex-direction:\s*column/s);
@@ -97,6 +105,8 @@ test("task detail views show image attachment previews instead of only file name
   assert.match(styles, /\.daily-flow-attachment-image\s*{[^}]*width:\s*100%/s);
   assert.match(styles, /\.daily-flow-attachment-image\s*{[^}]*object-fit:\s*cover/s);
   assert.match(styles, /\.daily-flow-attachment-more\s*{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.daily-flow-image-preview-layer\s*{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.daily-flow-image-preview-image\s*{[^}]*transform:\s*scale\(var\(--daily-flow-image-scale\)\)/s);
 });
 
 test("task detail content matches TickTick-like side panel and calendar popover layout", () => {
@@ -105,6 +115,9 @@ test("task detail content matches TickTick-like side panel and calendar popover 
 
   assert.match(source, /const board = createEl\("div", "daily-flow-task-board"\)/);
   assert.match(source, /const list = createEl\("div", "daily-flow-task-list-pane"\)/);
+  assert.match(source, /const resizer = createEl\("div", "daily-flow-task-resizer"\)/);
+  assert.match(source, /saveTaskListPaneWidth/);
+  assert.match(source, /taskListPaneWidth/);
   assert.match(source, /this\.renderTaskDetail\(board,\s*"panel"\)/);
   assert.match(source, /this\.renderTaskDetail\(main,\s*"popover"\)/);
   assert.match(source, /body\.addEventListener\("click", \(\) => this\.openTaskDetail\(task\)\)/);
@@ -115,13 +128,16 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(source, /renderTaskNote\(task\)/);
   assert.match(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
   assert.match(source, /date\.addClass\("is-overdue"\)/);
-  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*minmax\(540px,\s*1\.08fr\)\s+minmax\(420px,\s*0\.92fr\)/s);
+  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-task-resizer\s*{[^}]*cursor:\s*col-resize/s);
   assert.match(styles, /\.daily-flow-task-list-pane\s*{[^}]*overflow-x:\s*hidden/s);
+  assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*border:\s*0/s);
   assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*box-shadow:\s*none/s);
-  assert.match(styles, /\.daily-flow-detail-card\.is-popover\s*{[^}]*box-shadow:\s*0 18px 48px/s);
+  assert.match(styles, /\.daily-flow-detail-card\.is-popover\s*{[^}]*border:\s*0/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*display:\s*flex/s);
   assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*32px 34px/s);
   assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+34px/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*border:\s*0 !important/s);
   assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-note,\s*\.daily-flow-note-body,\s*\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*box-shadow:\s*none !important/s);
   assert.match(styles, /\.daily-flow-detail-date\s*{[^}]*background:\s*transparent/s);
   assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*margin-top:\s*auto/s);

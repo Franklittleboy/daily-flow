@@ -1,7 +1,8 @@
 const DEFAULT_SETTINGS = {
   defaultFocusMinutes: 25,
   weekStartsOn: "monday",
-  showCompletedTasks: false
+  showCompletedTasks: false,
+  taskListPaneWidth: 540
 };
 
 function pad2(value) {
@@ -104,6 +105,9 @@ function normalizeSettings(settings) {
   }
   if (typeof settings.showCompletedTasks === "boolean") {
     next.showCompletedTasks = settings.showCompletedTasks;
+  }
+  if (Number.isFinite(settings.taskListPaneWidth)) {
+    next.taskListPaneWidth = Math.min(760, Math.max(360, Math.round(settings.taskListPaneWidth)));
   }
   return next;
 }

@@ -3,6 +3,8 @@ const core = require("./core");
 
 const VIEW_TYPE_DAILY_FLOW = "daily-flow-view";
 const IMAGE_ATTACHMENT_EXTENSIONS = new Set(["avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "webp"]);
+const TASK_LIST_PANE_MIN_WIDTH = 360;
+const TASK_LIST_PANE_MAX_WIDTH = 760;
 
 class DailyFlowPlugin extends Plugin {
   async onload() {
@@ -54,6 +56,8 @@ class DailyFlowView extends ItemView {
     this.detailMenuOpen = false;
     this.detailSubtasksOpen = false;
     this.detailPickerAnchorDate = new Date();
+    this.activeImagePreview = null;
+    this.imagePreviewScale = 1;
     this.focus = {
       taskId: null,
       running: false,
@@ -109,6 +113,7 @@ class DailyFlowView extends ItemView {
       this.renderTasks(main);
     }
     this.renderTaskComposer(main);
+    this.renderImagePreview(main);
   }
 
   renderMiddle() {
@@ -121,19 +126,22 @@ class DailyFlowView extends ItemView {
     const inboxCount = this.plugin.data.tasks.filter((task) => !task.completed).length;
 
     const navItems = [
-      ["tasks", "today", "Today", todayCount],
-      ["tasks", "next7", "Next 7 Days", weekCount],
-      ["tasks", "inbox", "Inbox", inboxCount],
-      ["calendar", "calendar", "Calendar", null],
-      ["focus", "focus", "Focus", null]
+      ["tasks", "today", "Today", todayCount, "▣"],
+      ["tasks", "next7", "Next 7 Days", weekCount, "▤"],
+      ["tasks", "inbox", "Inbox", inboxCount, "▱"],
+      ["calendar", "calendar", "Calendar", null, "▦"],
+      ["focus", "focus", "Focus", null, "◎"]
     ];
 
-    for (const [section, filter, label, count] of navItems) {
+    for (const [section, filter, label, count, icon] of navItems) {
       const item = createEl("button", "daily-flow-nav-item");
+      item.setAttribute("title", label);
+      item.setAttribute("aria-label", label);
       if (this.section === section && (section !== "tasks" || this.taskFilter === filter)) {
         item.addClass("is-active");
       }
-      item.appendChild(createEl("span", "", label));
+      item.appendChild(createEl("span", "daily-flow-nav-icon", icon));
+      item.appendChild(createEl("span", "daily-flow-nav-label", label));
       if (count !== null) {
         item.appendChild(createEl("span", "daily-flow-count", String(count)));
       }
@@ -159,6 +167,7 @@ class DailyFlowView extends ItemView {
         : "Inbox";
 
     const board = createEl("div", "daily-flow-task-board");
+    board.style.setProperty("--daily-flow-task-list-width", `${this.getTaskListPaneWidth()}px`);
     const list = createEl("div", "daily-flow-task-list-pane");
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
 
@@ -181,8 +190,47 @@ class DailyFlowView extends ItemView {
       this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
     board.appendChild(list);
+    const resizer = createEl("div", "daily-flow-task-resizer");
+    this.bindTaskListResizer(board, resizer);
+    board.appendChild(resizer);
     this.renderTaskDetail(board, "panel");
     main.appendChild(board);
+  }
+
+  getTaskListPaneWidth() {
+    return clampTaskListPaneWidth(this.plugin.data.settings.taskListPaneWidth);
+  }
+
+  bindTaskListResizer(board, resizer) {
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "vertical");
+    resizer.setAttribute("title", "Resize task list");
+    resizer.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = this.getTaskListPaneWidth();
+      let nextWidth = startWidth;
+      board.addClass("is-resizing");
+
+      const onMove = (moveEvent) => {
+        nextWidth = clampTaskListPaneWidth(startWidth + moveEvent.clientX - startX);
+        board.style.setProperty("--daily-flow-task-list-width", `${nextWidth}px`);
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        board.removeClass("is-resizing");
+        this.saveTaskListPaneWidth(nextWidth);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  }
+
+  async saveTaskListPaneWidth(width) {
+    await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+      taskListPaneWidth: clampTaskListPaneWidth(width)
+    }));
   }
 
   renderHeader(title, onAdd) {
@@ -801,7 +849,7 @@ class DailyFlowView extends ItemView {
       content.appendChild(this.renderSubtasks(task, this.detailSubtasksOpen));
     }
 
-    content.appendChild(renderAttachments(task.attachments));
+    content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
     card.appendChild(content);
 
     if (this.detailDatePickerOpen) {
@@ -964,6 +1012,83 @@ class DailyFlowView extends ItemView {
       this.render();
     });
     input.click();
+  }
+
+  openImagePreview(attachment) {
+    const source = getAttachmentSource(attachment);
+    if (!source) {
+      return;
+    }
+    this.activeImagePreview = attachment;
+    this.imagePreviewScale = 1;
+    this.detailMenuOpen = false;
+    this.render();
+  }
+
+  closeImagePreview() {
+    this.activeImagePreview = null;
+    this.imagePreviewScale = 1;
+    this.render();
+  }
+
+  setImagePreviewScale(scale) {
+    this.imagePreviewScale = Math.min(3, Math.max(0.5, Math.round(scale * 100) / 100));
+    this.render();
+  }
+
+  renderImagePreview(container) {
+    if (!this.activeImagePreview) {
+      return;
+    }
+    const source = getAttachmentSource(this.activeImagePreview);
+    if (!source) {
+      return;
+    }
+
+    const layer = createEl("div", "daily-flow-image-preview-layer");
+    layer.addEventListener("click", (event) => {
+      if (event.target === layer) {
+        this.closeImagePreview();
+      }
+    });
+
+    const card = createEl("div", "daily-flow-image-preview-card");
+    card.addEventListener("click", (event) => event.stopPropagation());
+    const toolbar = createEl("div", "daily-flow-image-preview-toolbar");
+    const close = createEl("button", "daily-flow-image-preview-close", "×");
+    close.setAttribute("aria-label", "Close image preview");
+    close.addEventListener("click", () => this.closeImagePreview());
+    toolbar.appendChild(close);
+    toolbar.appendChild(createEl("span", "daily-flow-image-preview-title", this.activeImagePreview.name || "Image"));
+    const controls = createEl("div", "daily-flow-image-preview-controls");
+    const zoomOut = createEl("button", "daily-flow-image-preview-control", "−");
+    zoomOut.setAttribute("aria-label", "Zoom out");
+    zoomOut.addEventListener("click", () => this.setImagePreviewScale(this.imagePreviewScale - 0.25));
+    const reset = createEl("button", "daily-flow-image-preview-control", `${Math.round(this.imagePreviewScale * 100)}%`);
+    reset.setAttribute("aria-label", "Reset zoom");
+    reset.addEventListener("click", () => this.setImagePreviewScale(1));
+    const zoomIn = createEl("button", "daily-flow-image-preview-control", "+");
+    zoomIn.setAttribute("aria-label", "Zoom in");
+    zoomIn.addEventListener("click", () => this.setImagePreviewScale(this.imagePreviewScale + 0.25));
+    controls.appendChild(zoomOut);
+    controls.appendChild(reset);
+    controls.appendChild(zoomIn);
+    toolbar.appendChild(controls);
+    card.appendChild(toolbar);
+
+    const stage = createEl("div", "daily-flow-image-preview-stage");
+    stage.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      this.setImagePreviewScale(this.imagePreviewScale + (event.deltaY < 0 ? 0.1 : -0.1));
+    }, { passive: false });
+    stage.style.setProperty("--daily-flow-image-scale", String(this.imagePreviewScale));
+    const image = createEl("img", "daily-flow-image-preview-image");
+    image.src = source;
+    image.alt = this.activeImagePreview.name || "Image preview";
+    stage.appendChild(image);
+    card.appendChild(stage);
+    layer.appendChild(card);
+    container.appendChild(layer);
   }
 
   startFocusForTask(taskId) {
@@ -1315,7 +1440,7 @@ class TaskModal extends Modal {
   }
 }
 
-function renderAttachments(attachments) {
+function renderAttachments(attachments, onPreview) {
   const section = createEl("div", "daily-flow-attachments");
   if (!Array.isArray(attachments) || attachments.length === 0) {
     section.addClass("is-empty");
@@ -1330,7 +1455,14 @@ function renderAttachments(attachments) {
       image.alt = attachment.name;
       image.loading = "lazy";
       preview.appendChild(image);
-      preview.appendChild(createEl("button", "daily-flow-attachment-more", "…"));
+      preview.addEventListener("click", () => onPreview?.(attachment));
+      const more = createEl("button", "daily-flow-attachment-more", "…");
+      more.setAttribute("aria-label", "Preview image");
+      more.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onPreview?.(attachment);
+      });
+      preview.appendChild(more);
       section.appendChild(preview);
     } else {
       section.appendChild(createEl("span", "daily-flow-attachment", `⌘ ${attachment.name}`));
@@ -1386,6 +1518,10 @@ function readAttachmentFile(file) {
     reader.addEventListener("error", () => resolve(""));
     reader.readAsDataURL(file);
   });
+}
+
+function clampTaskListPaneWidth(width) {
+  return Math.min(TASK_LIST_PANE_MAX_WIDTH, Math.max(TASK_LIST_PANE_MIN_WIDTH, Math.round(Number(width) || 540)));
 }
 
 class DailyFlowSettingTab extends PluginSettingTab {
