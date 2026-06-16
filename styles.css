@@ -105,7 +105,24 @@
   min-width: 0;
   overflow: auto;
   position: relative;
+  padding: 0;
+}
+
+.daily-flow-main.is-calendar,
+.daily-flow-main.is-focus {
   padding: 22px 30px;
+}
+
+.daily-flow-task-board {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.86fr) minmax(460px, 1.14fr);
+  min-height: 100%;
+}
+
+.daily-flow-task-list-pane {
+  min-width: 0;
+  padding: 22px 30px;
+  overflow: auto;
 }
 
 .daily-flow-header {
@@ -118,7 +135,7 @@
 
 .daily-flow-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1.2;
 }
 
@@ -169,7 +186,8 @@
 .daily-flow-modal-card {
   width: min(520px, calc(100% - 48px));
   min-height: 360px;
-  overflow: hidden;
+  max-height: min(720px, calc(100vh - 64px));
+  overflow-y: auto;
   border: 1px solid var(--daily-flow-line);
   border-radius: 8px;
   background: var(--background-primary);
@@ -309,6 +327,11 @@
 
 .daily-flow-task-row:hover {
   background: linear-gradient(90deg, transparent, var(--daily-flow-soft));
+}
+
+.daily-flow-task-row.is-selected {
+  border-radius: 7px;
+  background: var(--daily-flow-soft);
 }
 
 .daily-flow-check {
@@ -581,10 +604,24 @@
 .daily-flow-detail-card {
   width: min(520px, calc(100% - 48px));
   min-height: 360px;
-  overflow: visible;
+  max-height: min(720px, calc(100% - 44px));
+  overflow-y: auto;
   border: 1px solid var(--daily-flow-line);
   border-radius: 7px;
   background: var(--background-primary);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+}
+
+.daily-flow-detail-card.is-panel {
+  width: 100%;
+  min-height: 100%;
+  max-height: none;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.daily-flow-detail-card.is-popover {
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
 }
 
@@ -631,17 +668,34 @@
   font-weight: 650;
 }
 
+.daily-flow-detail-date.is-overdue {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
 .daily-flow-detail-flag {
   justify-self: end;
   color: var(--text-muted);
   font-size: 20px;
 }
 
+.daily-flow-detail-content {
+  padding: 32px 34px;
+}
+
+.daily-flow-detail-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
 .daily-flow-detail-title {
   display: block;
-  width: calc(100% - 56px);
-  min-height: 56px;
-  margin: 28px 28px 8px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
   border: 0;
   color: var(--text-normal);
   background: transparent;
@@ -655,10 +709,27 @@
   outline: none;
 }
 
+.daily-flow-detail-menu-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 22px;
+}
+
+.daily-flow-detail-menu-button:hover {
+  background: var(--daily-flow-soft);
+}
+
 .daily-flow-detail-note,
 .daily-flow-note-body {
-  width: calc(100% - 56px);
-  margin: 0 28px 12px;
+  width: 100%;
+  margin: 0 0 18px;
   border: 0;
   color: var(--text-normal);
   background: transparent;
@@ -667,28 +738,31 @@
 }
 
 .daily-flow-detail-note {
-  min-height: 42px;
+  min-height: 34px;
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.8;
 }
 
 .daily-flow-note-body {
   min-height: 150px;
-  font-size: 20px;
-  line-height: 1.45;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.8;
 }
 
 .daily-flow-subtasks {
-  width: calc(100% - 56px);
-  margin: 0 28px 12px;
+  width: 100%;
+  margin: 0 0 18px;
 }
 
 .daily-flow-subtask-row {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  min-height: 36px;
+  gap: 12px;
+  min-height: 46px;
   border-bottom: 1px solid var(--daily-flow-line);
 }
 
@@ -709,18 +783,61 @@
 
 .daily-flow-attachments {
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  gap: 8px;
-  width: calc(100% - 56px);
-  margin: 0 28px 12px;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  margin: 6px 0 16px;
+}
+
+.daily-flow-attachments.is-empty {
+  display: none;
+}
+
+.daily-flow-modal-body .daily-flow-attachments {
+  width: 100%;
+  margin: 16px 0 0;
 }
 
 .daily-flow-attachment {
+  align-self: flex-start;
   border-radius: 7px;
   padding: 5px 9px;
   color: var(--text-muted);
   background: var(--daily-flow-soft);
   font-size: 13px;
+}
+
+.daily-flow-attachment-preview {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-radius: 6px;
+  background: var(--daily-flow-soft);
+}
+
+.daily-flow-attachment-image {
+  display: block;
+  width: 100%;
+  max-height: 560px;
+  object-fit: cover;
+}
+
+.daily-flow-attachment-more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 5px;
+  color: white;
+  background: rgba(42, 42, 42, 0.62);
+  font-size: 20px;
+  line-height: 1;
 }
 
 .daily-flow-detail-footer {

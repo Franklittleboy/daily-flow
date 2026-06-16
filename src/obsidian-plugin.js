@@ -2,6 +2,7 @@ const { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("
 const core = require("./core");
 
 const VIEW_TYPE_DAILY_FLOW = "daily-flow-view";
+const IMAGE_ATTACHMENT_EXTENSIONS = new Set(["avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "webp"]);
 
 class DailyFlowPlugin extends Plugin {
   async onload() {
@@ -97,6 +98,7 @@ class DailyFlowView extends ItemView {
     shell.appendChild(this.renderMiddle());
 
     const main = createEl("main", "daily-flow-main");
+    main.addClass(`is-${this.section}`);
     shell.appendChild(main);
 
     if (this.section === "calendar") {
@@ -155,26 +157,32 @@ class DailyFlowView extends ItemView {
       : this.taskFilter === "next7"
         ? "Next 7 Days"
         : "Inbox";
-    main.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
+
+    const board = createEl("div", "daily-flow-task-board");
+    const list = createEl("div", "daily-flow-task-list-pane");
+    list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
 
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
-      this.renderTaskGroup(main, "Overdue", groups.overdue);
-      this.renderTaskGroup(main, "Today", groups.today);
-      this.renderTaskGroup(main, "Future", groups.future);
-      this.renderTaskGroup(main, "No Date", groups.noDate);
+      this.renderTaskGroup(list, "Overdue", groups.overdue);
+      this.renderTaskGroup(list, "Today", groups.today);
+      this.renderTaskGroup(list, "Future", groups.future);
+      this.renderTaskGroup(list, "No Date", groups.noDate);
     } else {
       const tasks = this.taskFilter === "today"
         ? core.getTodayTasks(this.plugin.data.tasks)
         : core.getNextDaysTasks(this.plugin.data.tasks, 7);
-      this.renderTaskGroup(main, label, tasks);
+      this.renderTaskGroup(list, label, tasks);
     }
 
-    main.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
+    list.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
 
     if (this.plugin.data.settings.showCompletedTasks) {
-      this.renderTaskGroup(main, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
+      this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
+    board.appendChild(list);
+    this.renderTaskDetail(board, "panel");
+    main.appendChild(board);
   }
 
   renderHeader(title, onAdd) {
@@ -246,6 +254,9 @@ class DailyFlowView extends ItemView {
 
   renderTaskRow(task) {
     const row = createEl("div", "daily-flow-task-row");
+    if (task.id === this.activeTaskDetailId) {
+      row.addClass("is-selected");
+    }
     const checkbox = createEl("input", "daily-flow-check");
     checkbox.type = "checkbox";
     checkbox.checked = task.completed;
@@ -259,10 +270,10 @@ class DailyFlowView extends ItemView {
     if (task.note) {
       body.setAttribute("title", task.note);
     }
-    body.addEventListener("click", () => this.openTaskModal(task));
+    body.addEventListener("click", () => this.openTaskDetail(task));
 
     const date = createEl("button", "daily-flow-task-date", this.taskDateLabel(task));
-    date.addEventListener("click", () => this.openTaskModal(task));
+    date.addEventListener("click", () => this.openTaskDetail(task));
 
     const timer = createButton("◎", "Focus on task", false);
     timer.addEventListener("click", () => {
@@ -300,7 +311,7 @@ class DailyFlowView extends ItemView {
     } else {
       this.renderWeek(main);
     }
-    this.renderTaskDetail(main);
+    this.renderTaskDetail(main, "popover");
   }
 
   renderMonth(main) {
@@ -695,7 +706,7 @@ class DailyFlowView extends ItemView {
     this.render();
   }
 
-  renderTaskDetail(main) {
+  renderTaskDetail(container, presentation = "popover") {
     if (!this.activeTaskDetailId) {
       return;
     }
@@ -706,17 +717,20 @@ class DailyFlowView extends ItemView {
       return;
     }
 
-    const layer = createEl("div", "daily-flow-detail-layer");
-    layer.addEventListener("click", (event) => {
-      if (event.target === layer) {
-        this.activeTaskDetailId = null;
-        this.detailDatePickerOpen = false;
-        this.detailMenuOpen = false;
-        this.render();
-      }
-    });
+    const layer = presentation === "popover" ? createEl("div", "daily-flow-detail-layer") : null;
+    if (layer) {
+      layer.addEventListener("click", (event) => {
+        if (event.target === layer) {
+          this.activeTaskDetailId = null;
+          this.detailDatePickerOpen = false;
+          this.detailMenuOpen = false;
+          this.render();
+        }
+      });
+    }
 
     const card = createEl("section", "daily-flow-detail-card");
+    card.addClass(`is-${presentation}`);
     card.addEventListener("click", (event) => event.stopPropagation());
 
     const header = createEl("div", "daily-flow-detail-header");
@@ -735,6 +749,9 @@ class DailyFlowView extends ItemView {
     header.appendChild(createEl("span", "daily-flow-detail-separator", ""));
 
     const date = createEl("button", "daily-flow-detail-date", this.taskDetailDateLabel(task));
+    if (task.dueDate && task.dueDate < core.formatLocalDate(new Date()) && !task.completed) {
+      date.addClass("is-overdue");
+    }
     date.addEventListener("click", () => {
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
@@ -745,6 +762,8 @@ class DailyFlowView extends ItemView {
     header.appendChild(createEl("span", "daily-flow-detail-flag", "⚐"));
     card.appendChild(header);
 
+    const content = createEl("div", "daily-flow-detail-content");
+    const titleRow = createEl("div", "daily-flow-detail-title-row");
     const title = createEl("input", "daily-flow-detail-title");
     title.type = "text";
     title.value = task.title;
@@ -767,42 +786,23 @@ class DailyFlowView extends ItemView {
         }
       }
     });
-    card.appendChild(title);
+    titleRow.appendChild(title);
+    const menuButton = createEl("button", "daily-flow-detail-menu-button", "☰");
+    menuButton.addEventListener("click", () => {
+      this.detailMenuOpen = !this.detailMenuOpen;
+      this.detailDatePickerOpen = false;
+      this.render();
+    });
+    titleRow.appendChild(menuButton);
+    content.appendChild(titleRow);
 
-    if (task.kind === "note") {
-      const note = createEl("textarea", "daily-flow-note-body");
-      note.placeholder = "记录你的想法，或 使用模板";
-      note.value = task.note || "";
-      note.addEventListener("blur", async () => {
-        if (note.value !== task.note) {
-          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
-          this.render();
-        }
-      });
-      card.appendChild(note);
-    } else {
-      const note = createEl("textarea", "daily-flow-detail-note");
-      note.placeholder = "描述";
-      note.value = task.note || "";
-      note.addEventListener("blur", async () => {
-        if (note.value !== task.note) {
-          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
-          this.render();
-        }
-      });
-      card.appendChild(note);
-      if (this.detailSubtasksOpen || task.subtasks.length > 0) {
-        card.appendChild(this.renderSubtasks(task));
-      }
+    content.appendChild(this.renderTaskNote(task));
+    if (task.kind !== "note" && (this.detailSubtasksOpen || task.subtasks.length > 0)) {
+      content.appendChild(this.renderSubtasks(task, this.detailSubtasksOpen));
     }
 
-    if (task.attachments.length > 0) {
-      const attachments = createEl("div", "daily-flow-attachments");
-      for (const attachment of task.attachments) {
-        attachments.appendChild(createEl("span", "daily-flow-attachment", `⌘ ${attachment.name}`));
-      }
-      card.appendChild(attachments);
-    }
+    content.appendChild(renderAttachments(task.attachments));
+    card.appendChild(content);
 
     if (this.detailDatePickerOpen) {
       card.appendChild(this.renderDetailDatePicker(task));
@@ -827,11 +827,28 @@ class DailyFlowView extends ItemView {
       card.appendChild(this.renderDetailMenu(task));
     }
 
-    layer.appendChild(card);
-    main.appendChild(layer);
+    if (layer) {
+      layer.appendChild(card);
+      container.appendChild(layer);
+    } else {
+      container.appendChild(card);
+    }
   }
 
-  renderSubtasks(task) {
+  renderTaskNote(task) {
+    const note = createEl("textarea", task.kind === "note" ? "daily-flow-note-body" : "daily-flow-detail-note");
+    note.placeholder = task.kind === "note" ? "记录你的想法，或 使用模板" : "描述";
+    note.value = task.note || "";
+    note.addEventListener("blur", async () => {
+      if (note.value !== task.note) {
+        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
+        this.render();
+      }
+    });
+    return note;
+  }
+
+  renderSubtasks(task, showAdd) {
     const section = createEl("div", "daily-flow-subtasks");
     for (const subtask of task.subtasks) {
       const row = createEl("label", "daily-flow-subtask-row");
@@ -858,22 +875,24 @@ class DailyFlowView extends ItemView {
       section.appendChild(row);
     }
 
-    const add = createEl("input", "daily-flow-subtask-add");
-    add.type = "text";
-    add.placeholder = "换行即可添加检查事项";
-    add.addEventListener("keydown", async (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const title = add.value.trim();
-        if (title) {
-          await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-            subtasks: [...task.subtasks, { title, completed: false }]
-          }));
-          this.render();
+    if (showAdd) {
+      const add = createEl("input", "daily-flow-subtask-add");
+      add.type = "text";
+      add.placeholder = "换行即可添加检查事项";
+      add.addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const title = add.value.trim();
+          if (title) {
+            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
+              subtasks: [...task.subtasks, { title, completed: false }]
+            }));
+            this.render();
+          }
         }
-      }
-    });
-    section.appendChild(add);
+      });
+      section.appendChild(add);
+    }
     return section;
   }
 
@@ -1031,6 +1050,14 @@ class DailyFlowView extends ItemView {
   taskDetailDateLabel(task) {
     if (!task.dueDate) {
       return "无日期";
+    }
+    const due = core.parseLocalDate(task.dueDate);
+    const today = new Date();
+    const todayDate = core.formatLocalDate(today);
+    if (due && task.dueDate < todayDate && !task.completed) {
+      const todayStart = core.parseLocalDate(todayDate);
+      const overdueDays = todayStart ? Math.max(1, Math.round((todayStart.getTime() - due.getTime()) / 86400000)) : 1;
+      return `${due.getMonth() + 1}月${due.getDate()}日, 延期${overdueDays}天`;
     }
     return formatChineseDate(task.dueDate);
   }
@@ -1242,6 +1269,7 @@ class TaskModal extends Modal {
         : "";
       body.appendChild(checklist);
     }
+    body.appendChild(renderAttachments(this.task.attachments || []));
     card.appendChild(body);
 
     const actions = createEl("div", "daily-flow-modal-actions");
@@ -1277,6 +1305,52 @@ class TaskModal extends Modal {
     this.contentEl.appendChild(card);
     title.focus();
   }
+}
+
+function renderAttachments(attachments) {
+  const section = createEl("div", "daily-flow-attachments");
+  if (!Array.isArray(attachments) || attachments.length === 0) {
+    section.addClass("is-empty");
+    return section;
+  }
+
+  for (const attachment of attachments) {
+    if (isImageAttachment(attachment)) {
+      const preview = createEl("div", "daily-flow-attachment-preview");
+      const image = createEl("img", "daily-flow-attachment-image");
+      image.src = getAttachmentSource(attachment);
+      image.alt = attachment.name;
+      image.loading = "lazy";
+      preview.appendChild(image);
+      preview.appendChild(createEl("button", "daily-flow-attachment-more", "…"));
+      section.appendChild(preview);
+    } else {
+      section.appendChild(createEl("span", "daily-flow-attachment", `⌘ ${attachment.name}`));
+    }
+  }
+  return section;
+}
+
+function isImageAttachment(attachment) {
+  const source = getAttachmentSource(attachment);
+  const name = typeof attachment?.name === "string" ? attachment.name : "";
+  const value = source || name;
+  const extension = value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase();
+  return Boolean(source && extension && IMAGE_ATTACHMENT_EXTENSIONS.has(extension));
+}
+
+function getAttachmentSource(attachment) {
+  const path = typeof attachment?.path === "string" ? attachment.path.trim() : "";
+  if (!path) {
+    return "";
+  }
+  if (/^(?:app|blob|data|file|https?):/i.test(path)) {
+    return path;
+  }
+  if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) {
+    return `file://${encodeURI(path)}`;
+  }
+  return encodeURI(path);
 }
 
 class DailyFlowSettingTab extends PluginSettingTab {
