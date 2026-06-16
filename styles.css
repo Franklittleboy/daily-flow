@@ -115,14 +115,16 @@
 
 .daily-flow-task-board {
   display: grid;
-  grid-template-columns: minmax(420px, 0.86fr) minmax(460px, 1.14fr);
+  grid-template-columns: minmax(540px, 1.08fr) minmax(420px, 0.92fr);
   min-height: 100%;
+  overflow: hidden;
 }
 
 .daily-flow-task-list-pane {
   min-width: 0;
   padding: 22px 30px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .daily-flow-header {
@@ -318,7 +320,7 @@
 
 .daily-flow-task-row {
   display: grid;
-  grid-template-columns: 24px minmax(220px, 1fr) minmax(96px, auto) 36px;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(74px, auto) 28px;
   align-items: center;
   gap: 12px;
   min-height: 48px;
@@ -602,6 +604,8 @@
 }
 
 .daily-flow-detail-card {
+  display: flex;
+  flex-direction: column;
   width: min(520px, calc(100% - 48px));
   min-height: 360px;
   max-height: min(720px, calc(100% - 44px));
@@ -654,23 +658,23 @@
 .daily-flow-detail-separator {
   width: 1px;
   height: 22px;
-  background: var(--daily-flow-line-strong);
+  background: transparent;
 }
 
 .daily-flow-detail-date {
   justify-self: start;
   border: 0;
-  border-radius: 6px;
-  padding: 4px 9px;
+  border-radius: 0;
+  padding: 0;
   color: var(--daily-flow-accent);
-  background: var(--daily-flow-accent-soft);
+  background: transparent;
   font: inherit;
   font-weight: 650;
 }
 
 .daily-flow-detail-date.is-overdue {
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+  background: transparent;
 }
 
 .daily-flow-detail-flag {
@@ -680,6 +684,7 @@
 }
 
 .daily-flow-detail-content {
+  flex: 1 1 auto;
   padding: 32px 34px;
 }
 
@@ -697,6 +702,9 @@
   min-height: 40px;
   margin: 0;
   border: 0;
+  box-shadow: none !important;
+  outline: none;
+  padding: 0;
   color: var(--text-normal);
   background: transparent;
   font: inherit;
@@ -705,7 +713,21 @@
   line-height: 1.35;
 }
 
+.daily-flow-detail-title,
+.daily-flow-detail-note,
+.daily-flow-note-body,
+.daily-flow-subtask-title,
+.daily-flow-subtask-add {
+  appearance: none;
+  border: 0;
+  box-shadow: none !important;
+  outline: none;
+  background: transparent;
+}
+
 .daily-flow-detail-title:focus {
+  border: 0;
+  box-shadow: none !important;
   outline: none;
 }
 
@@ -731,6 +753,9 @@
   width: 100%;
   margin: 0 0 18px;
   border: 0;
+  box-shadow: none !important;
+  outline: none;
+  padding: 0;
   color: var(--text-normal);
   background: transparent;
   font: inherit;
@@ -770,6 +795,9 @@
 .daily-flow-subtask-add {
   min-width: 0;
   border: 0;
+  box-shadow: none !important;
+  outline: none;
+  padding: 0;
   color: var(--text-normal);
   background: transparent;
   font: inherit;
@@ -845,9 +873,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 64px;
-  padding: 0 28px;
-  border-top: 1px solid var(--daily-flow-line);
+  min-height: 54px;
+  margin-top: auto;
+  padding: 0 34px 22px;
+  border-top: 0;
   color: var(--text-muted);
 }
 
@@ -858,16 +887,16 @@
 .daily-flow-detail-tools {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .daily-flow-detail-tool {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   color: var(--text-muted);
   background: transparent;
   font: inherit;

@@ -134,7 +134,9 @@ function normalizeAttachment(attachment) {
   return {
     id: typeof attachment.id === "string" && attachment.id ? attachment.id : createId("attachment"),
     name,
-    path: typeof attachment.path === "string" ? attachment.path : ""
+    path: typeof attachment.path === "string" ? attachment.path : "",
+    mime: typeof attachment.mime === "string" ? attachment.mime : "",
+    dataUrl: typeof attachment.dataUrl === "string" ? attachment.dataUrl : ""
   };
 }
 

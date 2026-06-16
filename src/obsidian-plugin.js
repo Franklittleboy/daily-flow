@@ -949,8 +949,16 @@ class DailyFlowView extends ItemView {
       if (!file) {
         return;
       }
+      const attachment = {
+        name: file.name,
+        path: file.path || "",
+        mime: file.type || ""
+      };
+      if (isLikelyImageAttachment(file.name, file.type)) {
+        attachment.dataUrl = await readAttachmentFile(file);
+      }
       await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-        attachments: [...task.attachments, { name: file.name, path: file.path || file.name }]
+        attachments: [...task.attachments, attachment]
       }));
       this.detailMenuOpen = false;
       this.render();
@@ -1333,13 +1341,16 @@ function renderAttachments(attachments) {
 
 function isImageAttachment(attachment) {
   const source = getAttachmentSource(attachment);
+  const mime = typeof attachment?.mime === "string" ? attachment.mime : "";
   const name = typeof attachment?.name === "string" ? attachment.name : "";
-  const value = source || name;
-  const extension = value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase();
-  return Boolean(source && extension && IMAGE_ATTACHMENT_EXTENSIONS.has(extension));
+  return Boolean(source && isLikelyImageAttachment(name || source, mime || source));
 }
 
 function getAttachmentSource(attachment) {
+  const dataUrl = typeof attachment?.dataUrl === "string" ? attachment.dataUrl.trim() : "";
+  if (dataUrl) {
+    return dataUrl;
+  }
   const path = typeof attachment?.path === "string" ? attachment.path.trim() : "";
   if (!path) {
     return "";
@@ -1350,7 +1361,31 @@ function getAttachmentSource(attachment) {
   if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) {
     return `file://${encodeURI(path)}`;
   }
-  return encodeURI(path);
+  return "";
+}
+
+function isLikelyImageAttachment(name, mime = "") {
+  if (typeof mime === "string" && mime.toLowerCase().startsWith("image/")) {
+    return true;
+  }
+  const value = typeof name === "string" ? name : "";
+  const extension = value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase();
+  return Boolean(extension && IMAGE_ATTACHMENT_EXTENSIONS.has(extension));
+}
+
+function readAttachmentFile(file) {
+  return new Promise((resolve) => {
+    if (typeof FileReader === "undefined") {
+      resolve("");
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      resolve(typeof reader.result === "string" ? reader.result : "");
+    });
+    reader.addEventListener("error", () => resolve(""));
+    reader.readAsDataURL(file);
+  });
 }
 
 class DailyFlowSettingTab extends PluginSettingTab {

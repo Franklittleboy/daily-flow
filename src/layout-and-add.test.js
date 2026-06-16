@@ -84,6 +84,8 @@ test("task detail views show image attachment previews instead of only file name
   const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
+  assert.match(source, /readAttachmentFile\(file\)/);
+  assert.match(source, /dataUrl/);
   assert.match(source, /renderAttachments\(task\.attachments\)/);
   assert.match(source, /renderAttachments\(this\.task\.attachments/);
   assert.match(source, /isImageAttachment\(attachment\)/);
@@ -113,11 +115,17 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(source, /renderTaskNote\(task\)/);
   assert.match(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
   assert.match(source, /date\.addClass\("is-overdue"\)/);
-  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*minmax\(420px,\s*0\.86fr\)\s+minmax\(460px,\s*1\.14fr\)/s);
+  assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*minmax\(540px,\s*1\.08fr\)\s+minmax\(420px,\s*0\.92fr\)/s);
+  assert.match(styles, /\.daily-flow-task-list-pane\s*{[^}]*overflow-x:\s*hidden/s);
   assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*box-shadow:\s*none/s);
   assert.match(styles, /\.daily-flow-detail-card\.is-popover\s*{[^}]*box-shadow:\s*0 18px 48px/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*display:\s*flex/s);
   assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*32px 34px/s);
   assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+34px/s);
+  assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-note,\s*\.daily-flow-note-body,\s*\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*box-shadow:\s*none !important/s);
+  assert.match(styles, /\.daily-flow-detail-date\s*{[^}]*background:\s*transparent/s);
+  assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*margin-top:\s*auto/s);
+  assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*border-top:\s*0/s);
   assert.match(styles, /\.daily-flow-detail-date\.is-overdue\s*{[^}]*color:\s*#ef4444/s);
 });
 
@@ -139,7 +147,7 @@ test("task list rows use a single readable line with right-side date", () => {
 
   assert.match(source, /daily-flow-task-date/);
   assert.doesNotMatch(source, /daily-flow-task-meta/);
-  assert.match(styles, /grid-template-columns:\s*24px\s+minmax\(220px,\s*1fr\)\s+minmax\(96px,\s*auto\)\s+36px/);
+  assert.match(styles, /grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)\s+minmax\(74px,\s*auto\)\s+28px/);
   assert.match(styles, /\.daily-flow-task-title\s*{[^}]*white-space:\s*normal/s);
   assert.match(styles, /\.daily-flow-task-date\s*{[^}]*justify-self:\s*end/s);
 });
