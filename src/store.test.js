@@ -25,6 +25,11 @@ test("normalizeData fills missing data with safe defaults", () => {
   assert.equal(data.settings.showCompletedTasks, false);
   assert.equal(data.settings.taskListPaneWidth, 540);
   assert.equal(data.settings.taskNavPaneWidth, 320);
+  assert.deepEqual(data.settings.slashCommands, [
+    { label: "切换列表/待办事项", insertText: "- [ ] " },
+    { label: "插入分割线", insertText: "\n---\n" },
+    { label: "添加删除线", insertText: "~~文本~~" }
+  ]);
 });
 
 test("settings preserve the persisted task detail split width", () => {
@@ -36,6 +41,14 @@ test("settings preserve the persisted task detail split width", () => {
   assert.equal(normalizeData({ settings: { taskListPaneWidth: 900 } }).settings.taskListPaneWidth, 760);
   assert.equal(normalizeData({ settings: { taskNavPaneWidth: 120 } }).settings.taskNavPaneWidth, 240);
   assert.equal(normalizeData({ settings: { taskNavPaneWidth: 520 } }).settings.taskNavPaneWidth, 420);
+});
+
+test("empty slash command settings fall back to DailyFlow defaults", () => {
+  assert.deepEqual(normalizeData({ settings: { slashCommands: [] } }).settings.slashCommands, [
+    { label: "切换列表/待办事项", insertText: "- [ ] " },
+    { label: "插入分割线", insertText: "\n---\n" },
+    { label: "添加删除线", insertText: "~~文本~~" }
+  ]);
 });
 
 test("createTask adds a dated incomplete task", () => {
@@ -187,7 +200,12 @@ test("updateSettings merges supported settings", () => {
   const data = updateSettings(createEmptyData(), {
     defaultFocusMinutes: 45,
     weekStartsOn: "sunday",
-    showCompletedTasks: true
+    showCompletedTasks: true,
+    slashCommands: [
+      { label: "引用", insertText: "> " },
+      { label: "空命令", insertText: "" },
+      { label: "删除线", insertText: "~~文本~~" }
+    ]
   });
 
   assert.deepEqual(data.settings, {
@@ -195,6 +213,10 @@ test("updateSettings merges supported settings", () => {
     weekStartsOn: "sunday",
     showCompletedTasks: true,
     taskListPaneWidth: 540,
-    taskNavPaneWidth: 320
+    taskNavPaneWidth: 320,
+    slashCommands: [
+      { label: "引用", insertText: "> " },
+      { label: "删除线", insertText: "~~文本~~" }
+    ]
   });
 });

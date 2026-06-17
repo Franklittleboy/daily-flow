@@ -89,19 +89,36 @@ test("task popovers expose TickTick-like attachments, focus, and free markdown n
   assert.match(source, /开始专注/);
   assert.match(source, /startFocusForTask\(task\.id\)/);
   assert.match(source, /renderTaskMarkdownBody\(task\)/);
-  assert.match(source, /写描述、Markdown、- \[ \] 待办、- 无序列表/);
+  assert.match(source, /new EditorView\(/);
+  assert.match(source, /EditorState\.create\(/);
+  assert.match(source, /markdown\(\)/);
+  assert.match(source, /dailyFlowMarkdownPreview\(\)/);
+  assert.match(source, /TodoCheckboxWidget/);
+  assert.match(source, /BulletWidget/);
+  assert.match(source, /DividerWidget/);
+  assert.match(source, /renderCodeMirrorSlashMenu\(wrapper,\s*view/);
+  assert.match(source, /getCodeMirrorSlashTrigger\(view\)/);
+  assert.match(source, /getEditorSlashCommands\(commands\)/);
+  assert.match(source, /parseSlashCommandsInput/);
+  assert.match(source, /Slash commands/);
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*align-items:\s*flex-end/s);
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*justify-content:\s*flex-start/s);
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*min-height:\s*360px/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*min-height:\s*360px/s);
-  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*28px/s);
+  assert.match(styles, /\.daily-flow-root \.daily-flow-detail-title\s*{[^}]*font-size:\s*22px !important/s);
+  assert.match(styles, /\.daily-flow-root \.daily-flow-detail-date\s*{[^}]*font-size:\s*15px !important/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*right:\s*34px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*bottom:\s*90px/s);
-  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*resize:\s*none/s);
-  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*font-size:\s*20px/s);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-content\s*{[^}]*font-size:\s*16px/s);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-content\s*{[^}]*font-weight:\s*400/s);
+  assert.match(styles, /\.daily-flow-cm-todo\s*{[^}]*display:\s*inline-grid/s);
+  assert.match(styles, /\.daily-flow-cm-bullet\s*{[^}]*border-radius:\s*50%/s);
+  assert.match(styles, /\.daily-flow-cm-divider\s*{[^}]*border-top:\s*1px solid var\(--daily-flow-line\)/s);
+  assert.match(styles, /\.daily-flow-cm-strike\s*{[^}]*text-decoration:\s*line-through/s);
+  assert.match(styles, /\.daily-flow-slash-menu\s*{[^}]*position:\s*absolute/s);
 });
 
 test("task detail views show image attachment previews instead of only file names", () => {
@@ -117,6 +134,9 @@ test("task detail views show image attachment previews instead of only file name
   assert.match(source, /openImagePreview\(attachment\)/);
   assert.match(source, /renderImagePreview\(main\)/);
   assert.match(source, /imagePreviewScale/);
+  assert.match(source, /imagePreviewOffset/);
+  assert.match(source, /bindImagePreviewPan\(stage\)/);
+  assert.match(source, /setImagePreviewOffset/);
   assert.match(source, /daily-flow-attachment-more/);
   assert.match(source, /getAttachmentSource\(attachment\)/);
   assert.match(styles, /\.daily-flow-attachments\s*{[^}]*flex-direction:\s*column/s);
@@ -125,7 +145,8 @@ test("task detail views show image attachment previews instead of only file name
   assert.match(styles, /\.daily-flow-attachment-image\s*{[^}]*object-fit:\s*cover/s);
   assert.match(styles, /\.daily-flow-attachment-more\s*{[^}]*position:\s*absolute/s);
   assert.match(styles, /\.daily-flow-image-preview-layer\s*{[^}]*position:\s*absolute/s);
-  assert.match(styles, /\.daily-flow-image-preview-image\s*{[^}]*transform:\s*scale\(var\(--daily-flow-image-scale\)\)/s);
+  assert.match(styles, /\.daily-flow-image-preview-stage\s*{[^}]*cursor:\s*grab/s);
+  assert.match(styles, /\.daily-flow-image-preview-image\s*{[^}]*transform:\s*translate\(var\(--daily-flow-image-x\),\s*var\(--daily-flow-image-y\)\)\s+scale\(var\(--daily-flow-image-scale\)\)/s);
 });
 
 test("task detail content matches TickTick-like side panel and calendar popover layout", () => {
@@ -162,12 +183,11 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*position:\s*relative/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*display:\s*flex/s);
   assert.match(styles, /\.daily-flow-detail-header\s*{[^}]*grid-template-columns:\s*22px\s+minmax\(0,\s*1fr\)\s+28px/s);
-  assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*30px 40px 20px/s);
+  assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*28px 40px 20px/s);
   assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*border:\s*0 !important/s);
-  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*28px/s);
+  assert.match(styles, /\.daily-flow-root \.daily-flow-detail-title\s*{[^}]*font-size:\s*22px !important/s);
   assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*min-height:\s*min\(520px,\s*calc\(100vh - 260px\)\)/s);
-  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*resize:\s*none/s);
   assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*overflow:\s*auto/s);
   assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-md-body\s*{[^}]*box-shadow:\s*none !important/s);
   assert.match(styles, /\.daily-flow-detail-date\s*{[^}]*background:\s*transparent/s);

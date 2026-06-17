@@ -1,9 +1,16 @@
+const DEFAULT_SLASH_COMMANDS = [
+  { label: "切换列表/待办事项", insertText: "- [ ] " },
+  { label: "插入分割线", insertText: "\n---\n" },
+  { label: "添加删除线", insertText: "~~文本~~" }
+];
+
 const DEFAULT_SETTINGS = {
   defaultFocusMinutes: 25,
   weekStartsOn: "monday",
   showCompletedTasks: false,
   taskListPaneWidth: 540,
-  taskNavPaneWidth: 320
+  taskNavPaneWidth: 320,
+  slashCommands: DEFAULT_SLASH_COMMANDS
 };
 
 function pad2(value) {
@@ -89,12 +96,39 @@ function createEmptyData() {
   return {
     tasks: [],
     focusSessions: [],
-    settings: { ...DEFAULT_SETTINGS }
+    settings: cloneSettings(DEFAULT_SETTINGS)
+  };
+}
+
+function normalizeSlashCommand(command) {
+  if (!command || typeof command !== "object") {
+    return null;
+  }
+  const label = typeof command.label === "string" ? command.label.trim() : "";
+  const insertText = typeof command.insertText === "string" ? command.insertText : "";
+  if (!label || !insertText) {
+    return null;
+  }
+  return { label, insertText };
+}
+
+function normalizeSlashCommands(commands) {
+  if (!Array.isArray(commands)) {
+    return DEFAULT_SLASH_COMMANDS.map((command) => ({ ...command }));
+  }
+  const normalized = commands.map(normalizeSlashCommand).filter(Boolean);
+  return normalized.length ? normalized : DEFAULT_SLASH_COMMANDS.map((command) => ({ ...command }));
+}
+
+function cloneSettings(settings) {
+  return {
+    ...settings,
+    slashCommands: normalizeSlashCommands(settings?.slashCommands)
   };
 }
 
 function normalizeSettings(settings) {
-  const next = { ...DEFAULT_SETTINGS };
+  const next = cloneSettings(DEFAULT_SETTINGS);
   if (!settings || typeof settings !== "object") {
     return next;
   }
@@ -112,6 +146,9 @@ function normalizeSettings(settings) {
   }
   if (Number.isFinite(settings.taskNavPaneWidth)) {
     next.taskNavPaneWidth = Math.min(420, Math.max(240, Math.round(settings.taskNavPaneWidth)));
+  }
+  if (Array.isArray(settings.slashCommands)) {
+    next.slashCommands = normalizeSlashCommands(settings.slashCommands);
   }
   return next;
 }
@@ -201,7 +238,7 @@ function cloneData(data) {
   return {
     tasks: normalized.tasks.map((task) => ({ ...task })),
     focusSessions: normalized.focusSessions.map((session) => ({ ...session })),
-    settings: { ...normalized.settings }
+    settings: cloneSettings(normalized.settings)
   };
 }
 
