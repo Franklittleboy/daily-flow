@@ -248,7 +248,7 @@ const dailyFlowCore = (() => {
       title,
       dueDate: Object.hasOwn(changes, "dueDate") ? changes.dueDate || null : next.tasks[index].dueDate,
       note: Object.hasOwn(changes, "note") ? String(changes.note || "") : next.tasks[index].note,
-      kind: Object.hasOwn(changes, "kind") && changes.kind === "note" ? "note" : next.tasks[index].kind,
+      kind: Object.hasOwn(changes, "kind") ? (changes.kind === "note" ? "note" : "task") : next.tasks[index].kind,
       subtasks: Object.hasOwn(changes, "subtasks") && Array.isArray(changes.subtasks)
         ? changes.subtasks.map(normalizeSubtask).filter(Boolean)
         : next.tasks[index].subtasks,
@@ -1461,7 +1461,7 @@ const pluginModule = (() => {
       const menuButton = createEl("button", "daily-flow-detail-menu-button");
       menuButton.setAttribute("title", modeLabel);
       menuButton.setAttribute("aria-label", modeLabel);
-      menuButton.appendChild(createTickTickIcon(task.kind === "note" ? "check-square" : "file-text"));
+      menuButton.appendChild(createTickTickIcon(task.kind === "note" ? "check-square" : "subtask"));
       menuButton.addEventListener("click", () => {
         this.toggleTaskKind(task);
       });
@@ -1510,7 +1510,9 @@ const pluginModule = (() => {
     renderTaskNote(task) {
       const note = createEl("textarea", task.kind === "note" ? "daily-flow-note-body" : "daily-flow-detail-note");
       note.placeholder = task.kind === "note" ? "记录你的想法，或 使用模板" : "描述";
-      note.value = task.note || "";
+      note.value = task.kind === "note"
+        ? task.note || task.subtasks.map((subtask) => subtask.title).join("\n")
+        : task.note || "";
       note.addEventListener("blur", async () => {
         if (note.value !== task.note) {
           await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
@@ -1737,13 +1739,30 @@ const pluginModule = (() => {
     }
 
     async toggleTaskKind(task) {
-      await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-        kind: task.kind === "note" ? "task" : "note"
-      }));
+      await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, this.getTaskKindToggleChanges(task)));
       this.detailSubtasksOpen = false;
       this.detailMenuOpen = false;
       this.detailDatePickerOpen = false;
       this.render();
+    }
+
+    getTaskKindToggleChanges(task) {
+      if (task.kind === "note") {
+        const changes = { kind: "task" };
+        if (task.subtasks.length === 0 && task.note.trim()) {
+          changes.subtasks = task.note
+            .split("\n")
+            .map((line) => ({ title: line.trim(), completed: false }))
+            .filter((subtask) => subtask.title);
+        }
+        return changes;
+      }
+
+      const changes = { kind: "note" };
+      if (!task.note.trim() && task.subtasks.length > 0) {
+        changes.note = task.subtasks.map((subtask) => subtask.title).join("\n");
+      }
+      return changes;
     }
 
     renderDetailDatePicker(task) {

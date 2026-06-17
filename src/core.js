@@ -242,7 +242,7 @@ function updateTask(data, taskId, changes) {
     title,
     dueDate: Object.hasOwn(changes, "dueDate") ? changes.dueDate || null : next.tasks[index].dueDate,
     note: Object.hasOwn(changes, "note") ? String(changes.note || "") : next.tasks[index].note,
-    kind: Object.hasOwn(changes, "kind") && changes.kind === "note" ? "note" : next.tasks[index].kind,
+    kind: Object.hasOwn(changes, "kind") ? (changes.kind === "note" ? "note" : "task") : next.tasks[index].kind,
     subtasks: Object.hasOwn(changes, "subtasks") && Array.isArray(changes.subtasks)
       ? changes.subtasks.map(normalizeSubtask).filter(Boolean)
       : next.tasks[index].subtasks,

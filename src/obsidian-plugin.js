@@ -1079,7 +1079,7 @@ class DailyFlowView extends ItemView {
     const menuButton = createEl("button", "daily-flow-detail-menu-button");
     menuButton.setAttribute("title", modeLabel);
     menuButton.setAttribute("aria-label", modeLabel);
-    menuButton.appendChild(createTickTickIcon(task.kind === "note" ? "check-square" : "file-text"));
+    menuButton.appendChild(createTickTickIcon(task.kind === "note" ? "check-square" : "subtask"));
     menuButton.addEventListener("click", () => {
       this.toggleTaskKind(task);
     });
@@ -1128,7 +1128,9 @@ class DailyFlowView extends ItemView {
   renderTaskNote(task) {
     const note = createEl("textarea", task.kind === "note" ? "daily-flow-note-body" : "daily-flow-detail-note");
     note.placeholder = task.kind === "note" ? "记录你的想法，或 使用模板" : "描述";
-    note.value = task.note || "";
+    note.value = task.kind === "note"
+      ? task.note || task.subtasks.map((subtask) => subtask.title).join("\n")
+      : task.note || "";
     note.addEventListener("blur", async () => {
       if (note.value !== task.note) {
         await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
@@ -1355,13 +1357,30 @@ class DailyFlowView extends ItemView {
   }
 
   async toggleTaskKind(task) {
-    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-      kind: task.kind === "note" ? "task" : "note"
-    }));
+    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, this.getTaskKindToggleChanges(task)));
     this.detailSubtasksOpen = false;
     this.detailMenuOpen = false;
     this.detailDatePickerOpen = false;
     this.render();
+  }
+
+  getTaskKindToggleChanges(task) {
+    if (task.kind === "note") {
+      const changes = { kind: "task" };
+      if (task.subtasks.length === 0 && task.note.trim()) {
+        changes.subtasks = task.note
+          .split("\n")
+          .map((line) => ({ title: line.trim(), completed: false }))
+          .filter((subtask) => subtask.title);
+      }
+      return changes;
+    }
+
+    const changes = { kind: "note" };
+    if (!task.note.trim() && task.subtasks.length > 0) {
+      changes.note = task.subtasks.map((subtask) => subtask.title).join("\n");
+    }
+    return changes;
   }
 
   renderDetailDatePicker(task) {

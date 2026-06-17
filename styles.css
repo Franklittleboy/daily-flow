@@ -940,21 +940,21 @@
 
 .daily-flow-detail-content {
   flex: 1 1 auto;
-  padding: 32px 34px;
+  padding: 28px 34px 20px;
 }
 
 .daily-flow-detail-title-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
+  grid-template-columns: minmax(0, 1fr) 42px;
   align-items: start;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 14px;
+  margin-bottom: 12px;
 }
 
 .daily-flow-detail-title {
   display: block;
   width: 100%;
-  min-height: 40px;
+  min-height: 34px;
   margin: 0;
   border: 0 !important;
   box-shadow: none !important;
@@ -963,9 +963,9 @@
   color: var(--text-normal);
   background: transparent;
   font: inherit;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.32;
 }
 
 .daily-flow-detail-title,
@@ -990,10 +990,10 @@
 .daily-flow-detail-menu-button {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-muted);
   background: transparent;
   font: inherit;
@@ -1002,6 +1002,16 @@
 
 .daily-flow-detail-menu-button:hover {
   background: var(--daily-flow-soft);
+}
+
+.daily-flow-detail-menu-button .daily-flow-ticktick-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.daily-flow-detail-menu-button .daily-flow-ticktick-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .daily-flow-detail-note,
@@ -1022,15 +1032,15 @@
   min-height: 34px;
   color: var(--text-muted);
   font-size: 17px;
-  font-weight: 650;
-  line-height: 1.8;
+  font-weight: 500;
+  line-height: 1.55;
 }
 
 .daily-flow-note-body {
   min-height: 150px;
   font-size: 17px;
-  font-weight: 650;
-  line-height: 1.8;
+  font-weight: 500;
+  line-height: 1.55;
 }
 
 .daily-flow-subtasks {
@@ -1042,9 +1052,14 @@
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  min-height: 38px;
+  gap: 10px;
+  min-height: 36px;
   border-bottom: 1px solid var(--daily-flow-line);
+}
+
+.daily-flow-subtask-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
 }
 
 .daily-flow-subtask-title,
@@ -1057,8 +1072,8 @@
   color: var(--text-normal);
   background: transparent;
   font: inherit;
-  font-size: 18px;
-  line-height: 1.45;
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 .daily-flow-subtask-add {

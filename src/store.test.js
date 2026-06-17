@@ -88,6 +88,30 @@ test("tasks preserve subtasks, attachments, and note mode", () => {
   assert.equal(updated.attachments[1].dataUrl, "data:image/png;base64,abc123");
 });
 
+test("updateTask can switch notes back to tasks without dropping content", () => {
+  let data = createTask(createEmptyData(), {
+    title: "Checklist",
+    kind: "note",
+    note: "Line 1\nLine 2",
+    subtasks: [{ title: "Existing subtask", completed: true }]
+  });
+  const taskId = data.tasks[0].id;
+
+  data = updateTask(data, taskId, { kind: "task" });
+
+  assert.equal(data.tasks[0].kind, "task");
+  assert.equal(data.tasks[0].note, "Line 1\nLine 2");
+  assert.equal(data.tasks[0].subtasks.length, 1);
+  assert.equal(data.tasks[0].subtasks[0].title, "Existing subtask");
+  assert.equal(data.tasks[0].subtasks[0].completed, true);
+
+  data = updateTask(data, taskId, { kind: "note" });
+
+  assert.equal(data.tasks[0].kind, "note");
+  assert.equal(data.tasks[0].note, "Line 1\nLine 2");
+  assert.equal(data.tasks[0].subtasks[0].title, "Existing subtask");
+});
+
 test("createTask rejects an empty title", () => {
   assert.throws(() => createTask(createEmptyData(), { title: "   " }), /Task title is required/);
 });
