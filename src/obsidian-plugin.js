@@ -190,8 +190,6 @@ class DailyFlowView extends ItemView {
       this.renderTaskGroup(list, label, tasks);
     }
 
-    list.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
-
     if (this.plugin.data.settings.showCompletedTasks) {
       this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
@@ -389,12 +387,6 @@ class DailyFlowView extends ItemView {
     }
 
     container.appendChild(section);
-  }
-
-  renderAddTaskRow(dueDate) {
-    const row = createEl("button", "daily-flow-add-task-row", "+ Add task");
-    row.addEventListener("click", () => this.openTaskModal({ dueDate }));
-    return row;
   }
 
   renderTaskRow(task) {

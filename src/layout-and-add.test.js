@@ -37,10 +37,11 @@ test("task pages add a TickTick-like list column with a persisted draggable spli
   assert.doesNotMatch(source, /renderCalendar\(main\)[\s\S]{0,200}renderTaskSidebar/);
 });
 
-test("DailyFlow exposes direct add affordances beyond the header plus button", () => {
+test("DailyFlow keeps task add affordances out of the task list body", () => {
   const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
 
-  assert.match(source, /daily-flow-add-task-row/);
+  assert.doesNotMatch(source, /daily-flow-add-task-row/);
+  assert.match(source, /renderHeader\(label,\s*\(\) => this\.openTaskModal/);
   assert.match(source, /daily-flow-day-add/);
   assert.match(source, /daily-flow-week-add/);
 });
@@ -220,7 +221,14 @@ test("task list rows use a single readable line with right-side date", () => {
 
   assert.match(source, /daily-flow-task-date/);
   assert.doesNotMatch(source, /daily-flow-task-meta/);
+  assert.doesNotMatch(source, /renderAddTaskRow\(this\.defaultDueDateForFilter\(\)\)/);
+  assert.doesNotMatch(source, /daily-flow-add-task-row/);
   assert.match(styles, /grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)\s+minmax\(74px,\s*auto\)\s+28px/);
+  assert.match(styles, /\.daily-flow-check\s*{[^}]*justify-self:\s*center/s);
+  assert.match(styles, /\.daily-flow-check\s*{[^}]*align-self:\s*center/s);
+  assert.match(styles, /\.daily-flow-task-body\s*{[^}]*display:\s*flex/s);
+  assert.match(styles, /\.daily-flow-task-body\s*{[^}]*align-items:\s*center/s);
+  assert.match(styles, /\.daily-flow-task-body\s*{[^}]*padding:\s*0/s);
   assert.match(styles, /\.daily-flow-task-title\s*{[^}]*white-space:\s*normal/s);
   assert.match(styles, /\.daily-flow-task-date\s*{[^}]*justify-self:\s*end/s);
 });
