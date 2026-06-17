@@ -72,7 +72,7 @@ test("calendar task detail popover supports completion and date picking", () => 
   assert.match(styles, /\.daily-flow-date-picker-grid\s*{[^}]*grid-template-columns:\s*repeat\(7,\s*1fr\)/s);
 });
 
-test("task popovers expose TickTick-like subtasks, attachments, focus, and note conversion", () => {
+test("task popovers expose TickTick-like attachments, focus, and free markdown notes", () => {
   const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
@@ -86,21 +86,21 @@ test("task popovers expose TickTick-like subtasks, attachments, focus, and note 
   assert.match(source, /添加子任务/);
   assert.match(source, /上传附件/);
   assert.match(source, /开始专注/);
-  assert.match(source, /转换为笔记/);
   assert.match(source, /startFocusForTask\(task\.id\)/);
-  assert.match(source, /convertTaskToNote\(task\)/);
+  assert.match(source, /renderTaskMarkdownBody\(task\)/);
+  assert.match(source, /写描述、Markdown、- \[ \] 待办、- 无序列表/);
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*align-items:\s*flex-end/s);
   assert.match(styles, /\.daily-flow-detail-layer\s*{[^}]*justify-content:\s*flex-start/s);
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*min-height:\s*360px/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*min-height:\s*360px/s);
-  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*24px/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*28px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*right:\s*34px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*bottom:\s*90px/s);
-  assert.match(styles, /\.daily-flow-subtask-row\s*{[^}]*grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)/s);
-  assert.match(styles, /\.daily-flow-note-body\s*{[^}]*min-height:\s*150px/s);
+  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*resize:\s*none/s);
+  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*font-size:\s*20px/s);
 });
 
 test("task detail views show image attachment previews instead of only file names", () => {
@@ -141,15 +141,16 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(source, /body\.addEventListener\("click", \(\) => this\.openTaskDetail\(task\)\)/);
   assert.match(source, /card\.addClass\(`is-\$\{presentation\}`\)/);
   assert.match(source, /daily-flow-detail-title-row/);
-  assert.match(source, /daily-flow-detail-menu-button/);
-  assert.match(source, /toggleTaskKind\(task\)/);
-  assert.match(source, /getTaskKindToggleChanges\(task\)/);
-  assert.match(source, /task\.kind === "note" \? "转换为待办" : "转换为笔记"/);
-  assert.match(source, /createTickTickIcon\(task\.kind === "note" \? "check-square" : "subtask"\)/);
+  assert.doesNotMatch(source, /daily-flow-detail-menu-button/);
+  assert.doesNotMatch(source, /toggleTaskKind\(task\)/);
+  assert.doesNotMatch(source, /getTaskKindToggleChanges\(task\)/);
+  assert.doesNotMatch(source, /转换为待办|转换为笔记/);
   assert.match(source, /daily-flow-detail-content/);
-  assert.match(source, /renderTaskNote\(task\)/);
-  assert.match(source, /task\.note \|\| task\.subtasks\.map\(\(subtask\) => subtask\.title\)\.join\("\\n"\)/);
-  assert.match(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
+  assert.match(source, /renderTaskMarkdownBody\(task\)/);
+  assert.match(source, /getTaskMarkdownText\(task\)/);
+  assert.match(source, /`- \[\$\{subtask\.completed \? "x" : " "\}\] \$\{subtask\.title\}`/);
+  assert.doesNotMatch(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
+  assert.match(source, /if \(this\.detailDatePickerOpen\) \{\s*card\.appendChild\(this\.renderDetailDatePicker\(task\)\);\s*\}\s*const content = createEl\("div", "daily-flow-detail-content"\)/s);
   assert.match(source, /date\.addClass\("is-overdue"\)/);
   assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-nav-width,\s*320px\)\s+6px\s+var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.daily-flow-task-resizer\s*{[^}]*cursor:\s*col-resize/s);
@@ -157,17 +158,21 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*border:\s*0/s);
   assert.match(styles, /\.daily-flow-detail-card\.is-panel\s*{[^}]*box-shadow:\s*none/s);
   assert.match(styles, /\.daily-flow-detail-card\.is-popover\s*{[^}]*border:\s*0/s);
+  assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*position:\s*relative/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*display:\s*flex/s);
-  assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*28px 34px 20px/s);
-  assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+42px/s);
+  assert.match(styles, /\.daily-flow-detail-header\s*{[^}]*grid-template-columns:\s*22px\s+minmax\(0,\s*1fr\)\s+28px/s);
+  assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*30px 40px 20px/s);
+  assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*border:\s*0 !important/s);
-  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*24px/s);
-  assert.match(styles, /\.daily-flow-detail-note\s*{[^}]*font-size:\s*17px/s);
-  assert.match(styles, /\.daily-flow-note-body\s*{[^}]*font-size:\s*17px/s);
-  assert.match(styles, /\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*font-size:\s*17px/s);
-  assert.match(styles, /\.daily-flow-subtask-row\s*{[^}]*min-height:\s*36px/s);
-  assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-note,\s*\.daily-flow-note-body,\s*\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*box-shadow:\s*none !important/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*28px/s);
+  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*min-height:\s*min\(520px,\s*calc\(100vh - 260px\)\)/s);
+  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*resize:\s*none/s);
+  assert.match(styles, /\.daily-flow-detail-md-body\s*{[^}]*overflow:\s*auto/s);
+  assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-md-body\s*{[^}]*box-shadow:\s*none !important/s);
   assert.match(styles, /\.daily-flow-detail-date\s*{[^}]*background:\s*transparent/s);
+  assert.match(styles, /\.daily-flow-detail-date-picker\s*{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.daily-flow-detail-date-picker\s*{[^}]*top:\s*58px/s);
+  assert.match(styles, /\.daily-flow-detail-date-picker\s*{[^}]*left:\s*72px/s);
   assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*margin-top:\s*auto/s);
   assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*border-top:\s*0/s);
   assert.match(styles, /\.daily-flow-detail-date\.is-overdue\s*{[^}]*color:\s*#ef4444/s);
@@ -190,7 +195,7 @@ test("task rows expose a minimal TickTick-like context menu with date shortcuts"
   assert.match(source, /setTaskDueDate\(task,\s*null\)/);
   assert.match(source, /daily-flow-context-placeholder/);
   assert.match(source, /添加子任务/);
-  assert.match(source, /转换为笔记/);
+  assert.doesNotMatch(source, /转换为笔记/);
   assert.match(source, /删除/);
   assert.match(styles, /\.daily-flow-task-context-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
   assert.match(styles, /\.daily-flow-context-date-row\s*{[^}]*grid-template-columns:\s*repeat\(5,\s*1fr\)/s);

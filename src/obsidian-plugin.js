@@ -56,7 +56,6 @@ class DailyFlowView extends ItemView {
     this.activeTaskComposer = null;
     this.detailDatePickerOpen = false;
     this.detailMenuOpen = false;
-    this.detailSubtasksOpen = false;
     this.detailPickerAnchorDate = new Date();
     this.activeImagePreview = null;
     this.imagePreviewScale = 1;
@@ -513,10 +512,7 @@ class DailyFlowView extends ItemView {
       menu.appendChild(item);
     };
 
-    addItem("subtask", "添加子任务", () => {
-      this.detailSubtasksOpen = true;
-      this.openTaskDetail(task);
-    });
+    addItem("subtask", "添加子任务", null, true);
     addItem("pin", "置顶", null, true);
     addItem("archive-x", "放弃", null, true);
     addItem("move-right", "移动到", null, true, true);
@@ -525,7 +521,6 @@ class DailyFlowView extends ItemView {
     addItem("copy", "创建副本", null, true);
     addItem("link", "复制链接", null, true);
     addItem("sticky-note", "打开便签", null, true);
-    addItem("file-text", "转换为笔记", () => this.convertTaskToNote(task));
     addItem("trash", "删除", async () => {
       await this.plugin.setDailyData(core.deleteTask(this.plugin.data, task.id));
       if (this.activeTaskDetailId === task.id) {
@@ -989,7 +984,6 @@ class DailyFlowView extends ItemView {
     this.activeTaskDetailId = task.id;
     this.detailDatePickerOpen = false;
     this.detailMenuOpen = false;
-    this.detailSubtasksOpen = false;
     this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || new Date();
     this.render();
   }
@@ -1019,7 +1013,19 @@ class DailyFlowView extends ItemView {
 
     const card = createEl("section", "daily-flow-detail-card");
     card.addClass(`is-${presentation}`);
-    card.addEventListener("click", (event) => event.stopPropagation());
+    card.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        this.detailDatePickerOpen &&
+        target &&
+        !target.closest(".daily-flow-detail-date-picker") &&
+        !target.closest(".daily-flow-detail-date")
+      ) {
+        this.detailDatePickerOpen = false;
+        this.render();
+      }
+    });
 
     const header = createEl("div", "daily-flow-detail-header");
     if (task.kind === "note") {
@@ -1034,13 +1040,12 @@ class DailyFlowView extends ItemView {
       });
       header.appendChild(checkbox);
     }
-    header.appendChild(createEl("span", "daily-flow-detail-separator", ""));
-
     const date = createEl("button", "daily-flow-detail-date", this.taskDetailDateLabel(task));
     if (task.dueDate && task.dueDate < core.formatLocalDate(new Date()) && !task.completed) {
       date.addClass("is-overdue");
     }
-    date.addEventListener("click", () => {
+    date.addEventListener("click", (event) => {
+      event.stopPropagation();
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
       this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || new Date();
@@ -1049,6 +1054,10 @@ class DailyFlowView extends ItemView {
     header.appendChild(date);
     header.appendChild(createEl("span", "daily-flow-detail-flag", "⚐"));
     card.appendChild(header);
+
+    if (this.detailDatePickerOpen) {
+      card.appendChild(this.renderDetailDatePicker(task));
+    }
 
     const content = createEl("div", "daily-flow-detail-content");
     const titleRow = createEl("div", "daily-flow-detail-title-row");
@@ -1075,28 +1084,12 @@ class DailyFlowView extends ItemView {
       }
     });
     titleRow.appendChild(title);
-    const modeLabel = task.kind === "note" ? "转换为待办" : "转换为笔记";
-    const menuButton = createEl("button", "daily-flow-detail-menu-button");
-    menuButton.setAttribute("title", modeLabel);
-    menuButton.setAttribute("aria-label", modeLabel);
-    menuButton.appendChild(createTickTickIcon(task.kind === "note" ? "check-square" : "subtask"));
-    menuButton.addEventListener("click", () => {
-      this.toggleTaskKind(task);
-    });
-    titleRow.appendChild(menuButton);
     content.appendChild(titleRow);
 
-    content.appendChild(this.renderTaskNote(task));
-    if (task.kind !== "note" && (this.detailSubtasksOpen || task.subtasks.length > 0)) {
-      content.appendChild(this.renderSubtasks(task, this.detailSubtasksOpen));
-    }
+    content.appendChild(this.renderTaskMarkdownBody(task));
 
     content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
     card.appendChild(content);
-
-    if (this.detailDatePickerOpen) {
-      card.appendChild(this.renderDetailDatePicker(task));
-    }
 
     const footer = createEl("div", "daily-flow-detail-footer");
     footer.appendChild(createEl("span", "daily-flow-detail-list", "▣ 收集箱"));
@@ -1125,77 +1118,31 @@ class DailyFlowView extends ItemView {
     }
   }
 
-  renderTaskNote(task) {
-    const note = createEl("textarea", task.kind === "note" ? "daily-flow-note-body" : "daily-flow-detail-note");
-    note.placeholder = task.kind === "note" ? "记录你的想法，或 使用模板" : "描述";
-    note.value = task.kind === "note"
-      ? task.note || task.subtasks.map((subtask) => subtask.title).join("\n")
-      : task.note || "";
-    note.addEventListener("blur", async () => {
-      if (note.value !== task.note) {
-        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
+  renderTaskMarkdownBody(task) {
+    const body = createEl("textarea", "daily-flow-detail-md-body");
+    body.placeholder = "写描述、Markdown、- [ ] 待办、- 无序列表";
+    body.value = this.getTaskMarkdownText(task);
+    body.addEventListener("blur", async () => {
+      if (body.value !== task.note) {
+        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: body.value }));
         this.render();
       }
     });
-    return note;
+    return body;
   }
 
-  renderSubtasks(task, showAdd) {
-    const section = createEl("div", "daily-flow-subtasks");
-    for (const subtask of task.subtasks) {
-      const row = createEl("label", "daily-flow-subtask-row");
-      const check = createEl("input", "");
-      check.type = "checkbox";
-      check.checked = subtask.completed;
-      check.addEventListener("change", async () => {
-        const subtasks = task.subtasks.map((item) => item.id === subtask.id ? { ...item, completed: check.checked } : item);
-        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { subtasks }));
-        this.render();
-      });
-      const input = createEl("input", "daily-flow-subtask-title");
-      input.type = "text";
-      input.value = subtask.title;
-      input.addEventListener("blur", async () => {
-        const nextTitle = input.value.trim();
-        const subtasks = task.subtasks
-          .map((item) => item.id === subtask.id ? { ...item, title: nextTitle || item.title } : item);
-        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { subtasks }));
-        this.render();
-      });
-      row.appendChild(check);
-      row.appendChild(input);
-      section.appendChild(row);
+  getTaskMarkdownText(task) {
+    if (task.note.trim()) {
+      return task.note;
     }
-
-    if (showAdd) {
-      const add = createEl("input", "daily-flow-subtask-add");
-      add.type = "text";
-      add.placeholder = "换行即可添加检查事项";
-      add.addEventListener("keydown", async (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          const title = add.value.trim();
-          if (title) {
-            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-              subtasks: [...task.subtasks, { title, completed: false }]
-            }));
-            this.render();
-          }
-        }
-      });
-      section.appendChild(add);
-    }
-    return section;
+    return task.subtasks
+      .map((subtask) => `- [${subtask.completed ? "x" : " "}] ${subtask.title}`)
+      .join("\n");
   }
 
   renderDetailMenu(task) {
     const menu = createEl("div", "daily-flow-detail-menu");
     const items = [
-      ["└", "添加子任务", () => {
-        this.detailSubtasksOpen = true;
-        this.detailMenuOpen = false;
-        this.render();
-      }],
       ["☒", "放弃", null],
       ["◇", "标签", null],
       ["⌕", "上传附件", () => this.uploadAttachment(task)],
@@ -1205,7 +1152,6 @@ class DailyFlowView extends ItemView {
       ["▢", "创建副本", null],
       ["↪", "复制链接", null],
       ["▱", "打开便签", null],
-      ["▣", "转换为笔记", () => this.convertTaskToNote(task)],
       ["▤", "打印", null],
       ["⌫", "删除", async () => {
         await this.plugin.setDailyData(core.deleteTask(this.plugin.data, task.id));
@@ -1345,42 +1291,6 @@ class DailyFlowView extends ItemView {
     this.focus.startedAt = new Date();
     this.startFocusInterval();
     this.render();
-  }
-
-  async convertTaskToNote(task) {
-    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-      kind: "note",
-      note: task.note || ""
-    }));
-    this.detailMenuOpen = false;
-    this.render();
-  }
-
-  async toggleTaskKind(task) {
-    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, this.getTaskKindToggleChanges(task)));
-    this.detailSubtasksOpen = false;
-    this.detailMenuOpen = false;
-    this.detailDatePickerOpen = false;
-    this.render();
-  }
-
-  getTaskKindToggleChanges(task) {
-    if (task.kind === "note") {
-      const changes = { kind: "task" };
-      if (task.subtasks.length === 0 && task.note.trim()) {
-        changes.subtasks = task.note
-          .split("\n")
-          .map((line) => ({ title: line.trim(), completed: false }))
-          .filter((subtask) => subtask.title);
-      }
-      return changes;
-    }
-
-    const changes = { kind: "note" };
-    if (!task.note.trim() && task.subtasks.length > 0) {
-      changes.note = task.subtasks.map((subtask) => subtask.title).join("\n");
-    }
-    return changes;
   }
 
   renderDetailDatePicker(task) {

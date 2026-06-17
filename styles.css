@@ -858,12 +858,13 @@
 }
 
 .daily-flow-detail-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: min(520px, calc(100% - 48px));
   min-height: 360px;
   max-height: min(720px, calc(100% - 44px));
-  overflow-y: auto;
+  overflow: hidden;
   border: 0;
   border-radius: 7px;
   background: var(--background-primary);
@@ -886,11 +887,11 @@
 
 .daily-flow-detail-header {
   display: grid;
-  grid-template-columns: 26px 1px minmax(0, 1fr) 28px;
+  grid-template-columns: 22px minmax(0, 1fr) 28px;
   align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 0 28px;
+  gap: 18px;
+  min-height: 68px;
+  padding: 0 36px;
   border-bottom: 0;
 }
 
@@ -910,12 +911,6 @@
   font-weight: 700;
 }
 
-.daily-flow-detail-separator {
-  width: 1px;
-  height: 22px;
-  background: transparent;
-}
-
 .daily-flow-detail-date {
   justify-self: start;
   border: 0;
@@ -924,6 +919,7 @@
   color: var(--daily-flow-accent);
   background: transparent;
   font: inherit;
+  font-size: 19px;
   font-weight: 650;
 }
 
@@ -940,21 +936,22 @@
 
 .daily-flow-detail-content {
   flex: 1 1 auto;
-  padding: 28px 34px 20px;
+  overflow: auto;
+  padding: 30px 40px 20px;
 }
 
 .daily-flow-detail-title-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 14px;
-  margin-bottom: 12px;
+  gap: 0;
+  margin-bottom: 28px;
 }
 
 .daily-flow-detail-title {
   display: block;
   width: 100%;
-  min-height: 34px;
+  min-height: 38px;
   margin: 0;
   border: 0 !important;
   box-shadow: none !important;
@@ -963,16 +960,13 @@
   color: var(--text-normal);
   background: transparent;
   font: inherit;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.32;
 }
 
 .daily-flow-detail-title,
-.daily-flow-detail-note,
-.daily-flow-note-body,
-.daily-flow-subtask-title,
-.daily-flow-subtask-add {
+.daily-flow-detail-md-body {
   appearance: none;
   border: 0 !important;
   box-shadow: none !important;
@@ -987,37 +981,11 @@
   outline: none;
 }
 
-.daily-flow-detail-menu-button {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 0;
-  border-radius: 8px;
-  color: var(--text-muted);
-  background: transparent;
-  font: inherit;
-  font-size: 22px;
-}
-
-.daily-flow-detail-menu-button:hover {
-  background: var(--daily-flow-soft);
-}
-
-.daily-flow-detail-menu-button .daily-flow-ticktick-icon {
-  width: 28px;
-  height: 28px;
-}
-
-.daily-flow-detail-menu-button .daily-flow-ticktick-icon svg {
-  width: 26px;
-  height: 26px;
-}
-
-.daily-flow-detail-note,
-.daily-flow-note-body {
+.daily-flow-detail-md-body {
+  display: block;
   width: 100%;
-  margin: 0 0 18px;
+  min-height: min(520px, calc(100vh - 260px));
+  margin: 0 0 24px;
   border: 0 !important;
   box-shadow: none !important;
   outline: none;
@@ -1025,61 +993,12 @@
   color: var(--text-normal);
   background: transparent;
   font: inherit;
-  resize: vertical;
-}
-
-.daily-flow-detail-note {
-  min-height: 34px;
-  color: var(--text-muted);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 500;
-  line-height: 1.55;
-}
-
-.daily-flow-note-body {
-  min-height: 150px;
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1.55;
-}
-
-.daily-flow-subtasks {
-  width: 100%;
-  margin: 0 0 18px;
-}
-
-.daily-flow-subtask-row {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  min-height: 36px;
-  border-bottom: 1px solid var(--daily-flow-line);
-}
-
-.daily-flow-subtask-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-}
-
-.daily-flow-subtask-title,
-.daily-flow-subtask-add {
-  min-width: 0;
-  border: 0 !important;
-  box-shadow: none !important;
-  outline: none;
-  padding: 0;
-  color: var(--text-normal);
-  background: transparent;
-  font: inherit;
-  font-size: 17px;
-  line-height: 1.55;
-}
-
-.daily-flow-subtask-add {
-  width: 100%;
-  min-height: 38px;
-  color: var(--text-muted);
+  line-height: 1.72;
+  resize: none;
+  overflow: auto;
+  white-space: pre-wrap;
 }
 
 .daily-flow-attachments {
@@ -1281,8 +1200,12 @@
 }
 
 .daily-flow-detail-date-picker {
+  position: absolute;
+  top: 58px;
+  left: 72px;
+  z-index: 20;
   width: min(330px, calc(100% - 44px));
-  margin: -10px auto 18px;
+  margin: 0;
   padding: 14px 18px 16px;
   border: 1px solid var(--daily-flow-line);
   border-radius: 8px;
