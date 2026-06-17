@@ -1,5 +1,14 @@
 # DailyFlow Handoff
 
+## Latest Preview Rule Override
+
+This section overrides any older preview wording later in this file.
+
+- Normal feature branches: if Frank says `复制到 Obsidian 看效果` or `复制到 Obsidian 看整体效果`, default to the lightest preview: build in the current worktree and copy `manifest.json`, `main.js`, and `styles.css` to the Obsidian plugin directory. Do not merge `feature/release-polish`, do not run tests, and do not run syntax checks.
+- Normal feature branches: only use `scripts/refresh-preview.mjs --branch=<current feature branch> --copy` if Frank explicitly says `集成预览`, `和 release-polish 合起来看`, or `完整验证`. Add `--full` only when full tests are requested.
+- Release polish: if Frank says `复制到 Obsidian 看整体效果`, `发布前预览`, or asks to publish, use `scripts/refresh-preview.mjs --release --copy` and keep the full validation flow.
+- If any included worktree has uncommitted changes during an integration or release preview, stop and ask Frank whether to commit, stash, or leave those changes out.
+
 ## Current Baseline
 
 - Project: DailyFlow Obsidian plugin.
