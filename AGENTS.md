@@ -19,8 +19,11 @@ DailyFlow 是一个面向 Obsidian 的本地任务、日历和番茄专注插件
 - 用户希望多个功能可以并行完善，避免不同会话互相污染上下文。
 - 新会话开始时，应优先阅读 `docs/DAILYFLOW_HANDOFF.md`。
 - 不同功能应在对应 worktree 中完成，不要在根目录直接继续做具体功能。
-- 如果用户要复制到 Obsidian 查看多个功能合成后的效果，应使用 `scripts/refresh-preview.mjs --copy` 生成本地合成预览，不要直接从单个功能 worktree 复制。
-- 合成预览只包含各功能分支已经本地提交的内容；如果某个功能 worktree 还有未提交修改，先提醒用户提交或暂存，不要默默混入。
+- 发布后如果用户要让某个功能分支以最新发布版本为基础继续构建，应使用 `scripts/sync-feature-base.mjs`，默认以最新版本 tag 为基线，只融合“发布基线 + 当前功能分支自己的修改”。
+- 如果用户在普通功能分支要求“复制到 Obsidian 看效果”或“复制到 Obsidian 看整体效果”，默认走最轻量预览：只在当前功能 worktree 执行 `scripts/build.mjs`，然后复制 `manifest.json`、`main.js`、`styles.css` 到 Obsidian 插件目录；不要合并 `feature/release-polish`，不要跑完整测试。
+- 如果用户明确说“集成预览”“和 release-polish 合起来看”或“完整验证”，普通功能分支才使用 `scripts/refresh-preview.mjs --branch=<当前功能分支> --copy`；如需完整测试再加 `--full`。
+- 如果用户在 `release-polish` 要求“复制到 Obsidian 看整体效果”或准备发布，应使用 `scripts/refresh-preview.mjs --release --copy`，合成 `feature/release-polish` 和全部普通功能分支，并完整运行测试、语法检查、打包。
+- 预览只包含已提交内容；如果任何被纳入预览的 worktree 还有未提交修改，先询问用户要提交、暂存还是暂不纳入，不要默默混入。
 - 在用户明确说“可以提交/发布”之前，不要推送 GitHub，不要创建 GitHub Release，不要打新 tag。
 
 ## 编码行为

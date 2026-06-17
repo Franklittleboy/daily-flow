@@ -10,75 +10,162 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const nodePath = process.execPath;
-const baseBranch = "draft/0.1.10-base";
+const releaseBranch = "feature/release-polish";
 const previewBranch = "preview/local-obsidian";
 const previewPath = resolve(root, ".worktrees/preview-local");
 const obsidianPluginDir =
   "/Users/frank/Library/CloudStorage/OneDrive-个人/5 others/ob/.obsidian/plugins/daily-flow";
 
-const defaultBranches = [
+const featureBranches = [
   "feature/focus-page",
   "feature/calendar-views",
   "feature/task-detail-popover",
   "feature/mobile-layout",
 ];
 
-const args = new Set(process.argv.slice(2));
+const rawArgs = process.argv.slice(2);
+const args = new Set(rawArgs);
 const copyToObsidian = args.has("--copy");
+const releaseMode = args.has("--release");
+const forceFullVerification = args.has("--full") || args.has("--verify");
 const skipDirtyCheck = args.has("--skip-dirty-check");
-const requestedBranches = process.argv
-  .slice(2)
-  .find((arg) => arg.startsWith("--branches="));
-const branches = requestedBranches
-  ? requestedBranches
-      .slice("--branches=".length)
-      .split(",")
-      .map((branch) => branch.trim())
-      .filter(Boolean)
-  : defaultBranches;
+const requestedBranch = readOption("--branch");
+const requestedBranches = readOption("--branches");
+const requestedBase = readOption("--base");
 
 main();
 
 function main() {
-  if (!branches.length) {
-    fail("No feature branches were selected.");
-  }
+  const plan = getPreviewPlan();
 
   if (!skipDirtyCheck) {
-    for (const branch of branches) {
+    ensureBranchWorktreeIsCleanIfPresent(plan.baseRef);
+    for (const branch of plan.branches) {
       ensureBranchWorktreeIsClean(branch);
     }
   }
 
-  ensurePreviewWorktree();
-  resetPreviewToBase();
-  mergeFeatureBranches();
-  verifyPreviewBuild();
+  ensurePreviewWorktree(plan.baseRef);
+  resetPreviewToBase(plan.baseRef);
+  mergeFeatureBranches(plan.branches);
+  if (plan.fullVerification) {
+    verifyPreviewBuild();
+  } else {
+    buildPreviewOnly();
+  }
 
   if (copyToObsidian) {
     copyBuildToObsidian();
   }
 
   console.log("\nPreview is ready.");
+  console.log(`Mode: ${plan.mode}`);
+  console.log(
+    `Verification: ${plan.fullVerification ? "full tests" : "fast build only"}`,
+  );
+  console.log(`Base: ${plan.baseRef}`);
+  console.log(`Branches: ${plan.branches.join(", ") || "(none)"}`);
   console.log(`Path: ${previewPath}`);
   if (copyToObsidian) {
     console.log(`Copied to: ${obsidianPluginDir}`);
   }
 }
 
-function ensurePreviewWorktree() {
+function getPreviewPlan() {
+  const baseRef = requestedBase || releaseBranch;
+
+  if (releaseMode) {
+    return {
+      mode: "release-polish full preview",
+      baseRef,
+      branches: readBranchesOrDefault(featureBranches),
+      fullVerification: true,
+    };
+  }
+
+  if (requestedBranch === releaseBranch) {
+    return {
+      mode: "release-polish full preview",
+      baseRef,
+      branches: readBranchesOrDefault(featureBranches),
+      fullVerification: true,
+    };
+  }
+
+  if (requestedBranch) {
+    return {
+      mode: "single feature preview",
+      baseRef,
+      branches: [requestedBranch],
+      fullVerification: forceFullVerification,
+    };
+  }
+
+  if (requestedBranches) {
+    return {
+      mode: "selected feature preview",
+      baseRef,
+      branches: readBranchesOrDefault([]),
+      fullVerification: forceFullVerification,
+    };
+  }
+
+  const currentBranch = getCurrentBranch(process.cwd());
+  if (currentBranch === releaseBranch) {
+    return {
+      mode: "release-polish full preview",
+      baseRef,
+      branches: featureBranches,
+      fullVerification: true,
+    };
+  }
+
+  if (featureBranches.includes(currentBranch)) {
+    return {
+      mode: "single feature preview",
+      baseRef,
+      branches: [currentBranch],
+      fullVerification: forceFullVerification,
+    };
+  }
+
+  fail(
+    [
+      "Could not infer which preview to build.",
+      "",
+      "Use one of these:",
+      "  node scripts/refresh-preview.mjs --branch=feature/focus-page --copy",
+      "  node scripts/refresh-preview.mjs --release --copy",
+    ].join("\n"),
+  );
+}
+
+function readBranchesOrDefault(defaultValue) {
+  if (!requestedBranches) return defaultValue;
+
+  return requestedBranches
+    .split(",")
+    .map((branch) => branch.trim())
+    .filter(Boolean);
+}
+
+function ensurePreviewWorktree(baseRef) {
   if (existsSync(previewPath)) return;
 
   mkdirSync(dirname(previewPath), { recursive: true });
-  run("git", ["worktree", "add", previewPath, "-b", previewBranch, baseBranch]);
+  if (branchExists(previewBranch)) {
+    run("git", ["worktree", "add", previewPath, previewBranch]);
+  } else {
+    run("git", ["worktree", "add", previewPath, "-b", previewBranch, baseRef]);
+  }
 }
 
-function resetPreviewToBase() {
+function resetPreviewToBase(baseRef) {
   run("git", ["merge", "--abort"], previewPath, { allowFailure: true });
-  run("git", ["reset", "--hard", baseBranch], previewPath);
+  run("git", ["reset", "--hard", baseRef], previewPath);
 }
 
-function mergeFeatureBranches() {
+function mergeFeatureBranches(branches) {
   for (const branch of branches) {
     run("git", ["merge", "--no-edit", branch], previewPath);
   }
@@ -99,6 +186,10 @@ function verifyPreviewBuild() {
   run(nodePath, ["scripts/build.mjs"], previewPath);
 }
 
+function buildPreviewOnly() {
+  run(nodePath, ["scripts/build.mjs"], previewPath);
+}
+
 function copyBuildToObsidian() {
   mkdirSync(obsidianPluginDir, { recursive: true });
 
@@ -113,18 +204,29 @@ function ensureBranchWorktreeIsClean(branch) {
     fail(`No worktree was found for ${branch}.`);
   }
 
+  ensureWorktreeIsClean(branch, worktreePath);
+}
+
+function ensureBranchWorktreeIsCleanIfPresent(ref) {
+  const worktreePath = getWorktreePathForBranch(ref);
+  if (!worktreePath) return;
+
+  ensureWorktreeIsClean(ref, worktreePath);
+}
+
+function ensureWorktreeIsClean(branch, worktreePath) {
   const status = output("git", ["status", "--porcelain"], worktreePath);
-  if (status) {
-    fail(
-      [
-        `${branch} has uncommitted changes.`,
-        `Worktree: ${worktreePath}`,
-        "Commit or stash those changes locally before refreshing the combined preview.",
-        "",
-        status,
-      ].join("\n"),
-    );
-  }
+  if (!status) return;
+
+  fail(
+    [
+      `${branch} has uncommitted changes.`,
+      `Worktree: ${worktreePath}`,
+      "Ask Frank whether to commit, stash, or leave those changes before refreshing the preview.",
+      "",
+      status,
+    ].join("\n"),
+  );
 }
 
 function getWorktreePathForBranch(branch) {
@@ -140,6 +242,33 @@ function getWorktreePathForBranch(branch) {
   }
 
   return null;
+}
+
+function getCurrentBranch(cwd) {
+  try {
+    return output("git", ["branch", "--show-current"], cwd);
+  } catch {
+    return "";
+  }
+}
+
+function branchExists(branch) {
+  try {
+    execFileSync("git", ["rev-parse", "--verify", `refs/heads/${branch}`], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readOption(name) {
+  const prefix = `${name}=`;
+  const option = rawArgs.find((arg) => arg.startsWith(prefix));
+
+  return option ? option.slice(prefix.length) : "";
 }
 
 function run(command, commandArgs, cwd = root, options = {}) {

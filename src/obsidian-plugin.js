@@ -1,8 +1,14 @@
 const { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("obsidian");
+const { history, historyKeymap, defaultKeymap } = require("@codemirror/commands");
+const { markdown } = require("@codemirror/lang-markdown");
+const { EditorState, RangeSetBuilder } = require("@codemirror/state");
+const { Decoration, EditorView, ViewPlugin, WidgetType, keymap } = require("@codemirror/view");
 const core = require("./core");
 
 const VIEW_TYPE_DAILY_FLOW = "daily-flow-view";
 const IMAGE_ATTACHMENT_EXTENSIONS = new Set(["avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "webp"]);
+const TASK_NAV_PANE_MIN_WIDTH = 240;
+const TASK_NAV_PANE_MAX_WIDTH = 420;
 const TASK_LIST_PANE_MIN_WIDTH = 360;
 const TASK_LIST_PANE_MAX_WIDTH = 760;
 
@@ -54,19 +60,19 @@ class DailyFlowView extends ItemView {
     this.activeTaskComposer = null;
     this.detailDatePickerOpen = false;
     this.detailMenuOpen = false;
-    this.detailSubtasksOpen = false;
     this.detailPickerAnchorDate = new Date();
-    this.weekAllDayHeight = null;
     this.activeImagePreview = null;
     this.imagePreviewScale = 1;
+    this.imagePreviewOffset = { x: 0, y: 0 };
+    this.contextMenuTaskId = null;
+    this.contextMenuPosition = null;
+    this.activeMarkdownEditor = null;
     this.focus = {
       taskId: null,
       running: false,
       paused: false,
       mode: "pomodoro",
       startedAt: null,
-      pausedAt: null,
-      pausedSeconds: 0,
       elapsedSeconds: 0,
       remainingSeconds: plugin.data.settings.defaultFocusMinutes * 60,
       plannedMinutes: plugin.data.settings.defaultFocusMinutes,
@@ -91,10 +97,12 @@ class DailyFlowView extends ItemView {
   }
 
   async onClose() {
+    this.destroyActiveMarkdownEditor();
     this.stopFocusInterval();
   }
 
   render() {
+    this.destroyActiveMarkdownEditor();
     const root = this.containerEl.children[1];
     root.empty();
     root.addClass("daily-flow-root");
@@ -106,6 +114,13 @@ class DailyFlowView extends ItemView {
 
     const main = createEl("main", "daily-flow-main");
     main.addClass(`is-${this.section}`);
+    main.addEventListener("click", () => {
+      if (this.contextMenuTaskId) {
+        this.contextMenuTaskId = null;
+        this.contextMenuPosition = null;
+        this.render();
+      }
+    });
     shell.appendChild(main);
 
     if (this.section === "calendar") {
@@ -116,7 +131,15 @@ class DailyFlowView extends ItemView {
       this.renderTasks(main);
     }
     this.renderTaskComposer(main);
+    this.renderTaskContextMenu(main);
     this.renderImagePreview(main);
+  }
+
+  destroyActiveMarkdownEditor() {
+    if (this.activeMarkdownEditor) {
+      this.activeMarkdownEditor.destroy();
+      this.activeMarkdownEditor = null;
+    }
   }
 
   renderMiddle() {
@@ -124,36 +147,25 @@ class DailyFlowView extends ItemView {
     const title = createEl("div", "daily-flow-middle-title", "DailyFlow");
     middle.appendChild(title);
 
-    const todayCount = core.getTodayTasks(this.plugin.data.tasks).length;
-    const weekCount = core.getNextDaysTasks(this.plugin.data.tasks, 7).length;
-    const inboxCount = this.plugin.data.tasks.filter((task) => !task.completed).length;
-
     const navItems = [
-      ["tasks", "today", "Today", todayCount, "▣"],
-      ["tasks", "next7", "Next 7 Days", weekCount, "▤"],
-      ["tasks", "inbox", "Inbox", inboxCount, "▱"],
-      ["calendar", "calendar", "Calendar", null, "▦"],
-      ["focus", "focus", "Focus", null, "◎"]
+      ["tasks", "Tasks", "check-square"],
+      ["calendar", "Calendar", "calendar-days"],
+      ["focus", "Focus", "target"]
     ];
 
-    for (const [section, filter, label, count, icon] of navItems) {
+    for (const [section, label, icon] of navItems) {
       const item = createEl("button", "daily-flow-nav-item");
       item.setAttribute("title", label);
       item.setAttribute("aria-label", label);
-      if (this.section === section && (section !== "tasks" || this.taskFilter === filter)) {
+      if (this.section === section) {
         item.addClass("is-active");
       }
-      item.appendChild(createEl("span", "daily-flow-nav-icon", icon));
+      item.appendChild(createTickTickIcon(icon));
       item.appendChild(createEl("span", "daily-flow-nav-label", label));
-      if (count !== null) {
-        item.appendChild(createEl("span", "daily-flow-count", String(count)));
-      }
       item.addEventListener("click", () => {
         this.section = section;
         this.activeTaskDetailId = null;
-        if (section === "tasks") {
-          this.taskFilter = filter;
-        }
+        this.contextMenuTaskId = null;
         this.render();
       });
       middle.appendChild(item);
@@ -170,7 +182,13 @@ class DailyFlowView extends ItemView {
         : "Inbox";
 
     const board = createEl("div", "daily-flow-task-board");
+    board.style.setProperty("--daily-flow-task-nav-width", `${this.getTaskNavPaneWidth()}px`);
     board.style.setProperty("--daily-flow-task-list-width", `${this.getTaskListPaneWidth()}px`);
+    board.appendChild(this.renderTaskSidebar());
+    const navResizer = createEl("div", "daily-flow-task-nav-resizer");
+    this.bindTaskNavResizer(board, navResizer);
+    board.appendChild(navResizer);
+
     const list = createEl("div", "daily-flow-task-list-pane");
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
 
@@ -187,21 +205,104 @@ class DailyFlowView extends ItemView {
       this.renderTaskGroup(list, label, tasks);
     }
 
-    list.appendChild(this.renderAddTaskRow(this.defaultDueDateForFilter()));
-
     if (this.plugin.data.settings.showCompletedTasks) {
       this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
     board.appendChild(list);
-    const resizer = createEl("div", "daily-flow-task-resizer");
-    this.bindTaskListResizer(board, resizer);
-    board.appendChild(resizer);
+    const detailResizer = createEl("div", "daily-flow-task-resizer");
+    this.bindTaskListResizer(board, detailResizer);
+    board.appendChild(detailResizer);
     this.renderTaskDetail(board, "panel");
     main.appendChild(board);
   }
 
+  renderTaskSidebar() {
+    const sidebar = createEl("aside", "daily-flow-task-sidebar");
+    const todayCount = core.getTodayTasks(this.plugin.data.tasks).length;
+    const weekCount = core.getNextDaysTasks(this.plugin.data.tasks, 7).length;
+    const inboxCount = this.plugin.data.tasks.filter((task) => !task.completed).length;
+    const items = [
+      ["today", "calendar-day", "Today", todayCount],
+      ["next7", "calendar-week", "Next 7 Days", weekCount],
+      ["inbox", "inbox", "Inbox", inboxCount]
+    ];
+    for (const [filter, icon, label, count] of items) {
+      const item = createEl("button", "daily-flow-task-sidebar-item");
+      if (this.taskFilter === filter) {
+        item.addClass("is-active");
+      }
+      item.appendChild(createTickTickIcon(icon));
+      item.appendChild(createEl("span", "daily-flow-task-sidebar-label", label));
+      item.appendChild(createEl("span", "daily-flow-task-sidebar-count", String(count)));
+      item.addEventListener("click", () => {
+        this.taskFilter = filter;
+        this.activeTaskDetailId = null;
+        this.contextMenuTaskId = null;
+        this.render();
+      });
+      sidebar.appendChild(item);
+    }
+
+    sidebar.appendChild(createEl("div", "daily-flow-task-sidebar-divider"));
+    sidebar.appendChild(createEl("div", "daily-flow-task-sidebar-heading", "Lists"));
+    sidebar.appendChild(createEl("p", "daily-flow-task-sidebar-hint", "Use lists to organize your tasks and notes."));
+    sidebar.appendChild(createEl("div", "daily-flow-task-sidebar-heading", "Filters"));
+    sidebar.appendChild(createEl("p", "daily-flow-task-sidebar-hint", "Filter tasks by list, date, priority, and tags."));
+    sidebar.appendChild(createEl("div", "daily-flow-task-sidebar-heading", "Tags"));
+    sidebar.appendChild(createEl("p", "daily-flow-task-sidebar-hint", "Type # while adding a task to quickly choose tags."));
+    sidebar.appendChild(createEl("div", "daily-flow-task-sidebar-spacer"));
+
+    const completed = createEl("button", "daily-flow-task-sidebar-item");
+    completed.appendChild(createTickTickIcon("check-circle"));
+    completed.appendChild(createEl("span", "daily-flow-task-sidebar-label", "Completed"));
+    completed.addEventListener("click", async () => {
+      await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+        showCompletedTasks: !this.plugin.data.settings.showCompletedTasks
+      }));
+      this.render();
+    });
+    sidebar.appendChild(completed);
+
+    const trash = createEl("button", "daily-flow-task-sidebar-item");
+    trash.appendChild(createTickTickIcon("trash"));
+    trash.appendChild(createEl("span", "daily-flow-task-sidebar-label", "Trash"));
+    trash.disabled = true;
+    sidebar.appendChild(trash);
+    return sidebar;
+  }
+
+  getTaskNavPaneWidth() {
+    return clampTaskNavPaneWidth(this.plugin.data.settings.taskNavPaneWidth);
+  }
+
   getTaskListPaneWidth() {
     return clampTaskListPaneWidth(this.plugin.data.settings.taskListPaneWidth);
+  }
+
+  bindTaskNavResizer(board, resizer) {
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "vertical");
+    resizer.setAttribute("title", "Resize list sidebar");
+    resizer.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = this.getTaskNavPaneWidth();
+      let nextWidth = startWidth;
+      board.addClass("is-resizing");
+
+      const onMove = (moveEvent) => {
+        nextWidth = clampTaskNavPaneWidth(startWidth + moveEvent.clientX - startX);
+        board.style.setProperty("--daily-flow-task-nav-width", `${nextWidth}px`);
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        board.removeClass("is-resizing");
+        this.saveTaskNavPaneWidth(nextWidth);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
   }
 
   bindTaskListResizer(board, resizer) {
@@ -233,6 +334,12 @@ class DailyFlowView extends ItemView {
   async saveTaskListPaneWidth(width) {
     await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
       taskListPaneWidth: clampTaskListPaneWidth(width)
+    }));
+  }
+
+  async saveTaskNavPaneWidth(width) {
+    await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+      taskNavPaneWidth: clampTaskNavPaneWidth(width)
     }));
   }
 
@@ -297,17 +404,12 @@ class DailyFlowView extends ItemView {
     container.appendChild(section);
   }
 
-  renderAddTaskRow(dueDate) {
-    const row = createEl("button", "daily-flow-add-task-row", "+ Add task");
-    row.addEventListener("click", () => this.openTaskModal({ dueDate }));
-    return row;
-  }
-
   renderTaskRow(task) {
     const row = createEl("div", "daily-flow-task-row");
     if (task.id === this.activeTaskDetailId) {
       row.addClass("is-selected");
     }
+    row.addEventListener("contextmenu", (event) => this.openTaskContextMenu(task, event));
     const checkbox = createEl("input", "daily-flow-check");
     checkbox.type = "checkbox";
     checkbox.checked = task.completed;
@@ -341,6 +443,143 @@ class DailyFlowView extends ItemView {
     return row;
   }
 
+  openTaskContextMenu(task, event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.contextMenuTaskId = task.id;
+    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
+    this.activeTaskDetailId = task.id;
+    this.detailMenuOpen = false;
+    this.render();
+  }
+
+  renderTaskContextMenu(container) {
+    if (!this.contextMenuTaskId || !this.contextMenuPosition) {
+      return;
+    }
+    const task = this.plugin.data.tasks.find((item) => item.id === this.contextMenuTaskId);
+    if (!task) {
+      this.contextMenuTaskId = null;
+      return;
+    }
+
+    const menu = createEl("div", "daily-flow-task-context-menu");
+    menu.style.left = `${this.contextMenuPosition.x}px`;
+    menu.style.top = `${this.contextMenuPosition.y}px`;
+    menu.addEventListener("click", (event) => event.stopPropagation());
+    const closeMenu = () => {
+      this.contextMenuTaskId = null;
+      this.contextMenuPosition = null;
+      this.render();
+    };
+
+    menu.appendChild(createEl("div", "daily-flow-context-label", "日期"));
+    const dateRow = createEl("div", "daily-flow-context-date-row");
+    const dateActions = [
+      ["sun", "设为今天", () => this.setTaskDueDate(task, core.formatLocalDate(new Date()))],
+      ["sunrise", "设为明天", () => this.setTaskDueDate(task, core.formatLocalDate(core.addDays(new Date(), 1)))],
+      ["calendar-plus", "设为七天后", () => this.setTaskDueDate(task, core.formatLocalDate(core.addDays(new Date(), 7)))],
+      ["calendar-days", "自定义日期", () => this.openCustomDateInput(task, menu)],
+      ["calendar-x", "清除日期", () => this.setTaskDueDate(task, null)]
+    ];
+    for (const [icon, label, action] of dateActions) {
+      const button = createEl("button", "daily-flow-context-date-button");
+      button.setAttribute("aria-label", label);
+      button.setAttribute("title", label);
+      button.appendChild(createTickTickIcon(icon));
+      button.addEventListener("click", action);
+      dateRow.appendChild(button);
+    }
+    menu.appendChild(dateRow);
+
+    menu.appendChild(createEl("div", "daily-flow-context-label", "优先级"));
+    const priorityRow = createEl("div", "daily-flow-context-priority-row");
+    for (const color of ["red", "amber", "blue", "gray"]) {
+      const button = createEl("button", `daily-flow-context-priority is-${color} daily-flow-context-placeholder`);
+      button.appendChild(createTickTickIcon("flag"));
+      button.disabled = true;
+      priorityRow.appendChild(button);
+    }
+    menu.appendChild(priorityRow);
+
+    const addItem = (icon, label, action, disabled = false, arrow = false) => {
+      const item = createEl("button", disabled ? "daily-flow-context-item daily-flow-context-placeholder" : "daily-flow-context-item");
+      item.appendChild(createTickTickIcon(icon));
+      item.appendChild(createEl("span", "", label));
+      if (arrow) {
+        item.appendChild(createEl("span", "daily-flow-context-arrow", "›"));
+      }
+      item.disabled = disabled;
+      if (action) {
+        item.addEventListener("click", async () => {
+          await action();
+          closeMenu();
+        });
+      }
+      menu.appendChild(item);
+    };
+
+    addItem("subtask", "添加子任务", null, true);
+    addItem("pin", "置顶", null, true);
+    addItem("archive-x", "放弃", null, true);
+    addItem("move-right", "移动到", null, true, true);
+    addItem("tag", "标签", null, true, true);
+    addItem("target", "开始专注", () => this.startFocusForTask(task.id), false, true);
+    addItem("copy", "创建副本", null, true);
+    addItem("link", "复制链接", null, true);
+    addItem("sticky-note", "打开便签", null, true);
+    addItem("trash", "删除", async () => {
+      await this.plugin.setDailyData(core.deleteTask(this.plugin.data, task.id));
+      if (this.activeTaskDetailId === task.id) {
+        this.activeTaskDetailId = null;
+      }
+    });
+
+    container.appendChild(menu);
+    this.positionTaskContextMenu(menu);
+  }
+
+  positionTaskContextMenu(menu) {
+    if (!this.contextMenuPosition) {
+      return;
+    }
+    const margin = 12;
+    const rect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    let left = this.contextMenuPosition.x;
+    let top = this.contextMenuPosition.y;
+
+    if (left + rect.width + margin > viewportWidth) {
+      left = viewportWidth - rect.width - margin;
+    }
+    if (top + rect.height + margin > viewportHeight) {
+      top = this.contextMenuPosition.y - rect.height;
+    }
+
+    left = Math.max(margin, Math.min(left, viewportWidth - rect.width - margin));
+    top = Math.max(margin, Math.min(top, viewportHeight - rect.height - margin));
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
+  }
+
+  async setTaskDueDate(task, dueDate) {
+    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { dueDate }));
+    this.contextMenuTaskId = null;
+    this.contextMenuPosition = null;
+    this.render();
+  }
+
+  openCustomDateInput(task, menu) {
+    const input = createEl("input", "daily-flow-context-date-input");
+    input.type = "date";
+    input.value = task.dueDate || core.formatLocalDate(new Date());
+    input.addEventListener("change", () => this.setTaskDueDate(task, input.value || null));
+    menu.appendChild(input);
+    input.showPicker?.();
+    input.focus();
+  }
+
   taskDateLabel(task) {
     if (!task.dueDate) {
       return "No date";
@@ -354,7 +593,7 @@ class DailyFlowView extends ItemView {
   renderCalendar(main) {
     const title = this.calendarMode === "month"
       ? `${this.anchorDate.getFullYear()}-${String(this.anchorDate.getMonth() + 1).padStart(2, "0")}`
-      : `${this.anchorDate.getFullYear()}年${this.anchorDate.getMonth() + 1}月`;
+      : "Week View";
     main.appendChild(this.renderHeader(title, () => this.openTaskModal({ dueDate: core.formatLocalDate(this.anchorDate) })));
 
     if (this.calendarMode === "month") {
@@ -387,28 +626,22 @@ class DailyFlowView extends ItemView {
       }
 
       const dayTop = createEl("div", "daily-flow-day-top");
-      const dateLine = createEl("div", "daily-flow-date-line");
       const dayNumber = createEl("button", "daily-flow-day-number", String(Number(cell.date.slice(8, 10))));
       dayNumber.addEventListener("click", (event) => {
         event.stopPropagation();
         this.openTaskModal({ dueDate: cell.date });
       });
-      const lunar = core.formatLunarDay(cell.date);
-      dateLine.appendChild(dayNumber);
-      if (lunar) {
-        dateLine.appendChild(createEl("span", "daily-flow-lunar", lunar));
-      }
       const add = createEl("button", "daily-flow-day-add", "+ Add");
       add.addEventListener("click", (event) => {
         event.stopPropagation();
         this.openTaskModal({ dueDate: cell.date });
       });
-      dayTop.appendChild(dateLine);
+      dayTop.appendChild(dayNumber);
       dayTop.appendChild(add);
       day.appendChild(dayTop);
 
       const tasks = this.tasksForDate(cell.date);
-      for (const task of tasks.slice(0, 6)) {
+      for (const task of tasks.slice(0, 4)) {
         const bar = createEl("button", "daily-flow-calendar-task", task.title);
         this.styleCalendarTask(bar, task);
         bar.addEventListener("click", (event) => {
@@ -417,8 +650,8 @@ class DailyFlowView extends ItemView {
         });
         day.appendChild(bar);
       }
-      if (tasks.length > 6) {
-        day.appendChild(createEl("span", "daily-flow-more", `+${tasks.length - 6}`));
+      if (tasks.length > 4) {
+        day.appendChild(createEl("span", "daily-flow-more", `+${tasks.length - 4}`));
       }
       day.addEventListener("click", () => this.openTaskModal({ dueDate: cell.date }));
       grid.appendChild(day);
@@ -429,115 +662,29 @@ class DailyFlowView extends ItemView {
   renderWeek(main) {
     const week = createEl("div", "daily-flow-week");
     const days = core.getWeekDays(this.anchorDate, this.plugin.data.settings.weekStartsOn);
-    if (this.weekAllDayHeight) {
-      week.style.setProperty("--daily-flow-week-all-day-height", `${this.weekAllDayHeight}px`);
-    }
 
-    const head = createEl("div", "daily-flow-week-head");
-    head.appendChild(createEl("div", "daily-flow-week-index", `${this.isoWeekNumber(core.parseLocalDate(days[0]) || this.anchorDate)}周`));
-    for (const label of this.weekdayLabels()) {
-      head.appendChild(createEl("div", "daily-flow-week-day-name", label));
-    }
-    week.appendChild(head);
-
-    const allDay = createEl("div", "daily-flow-week-all-day");
-    allDay.appendChild(createEl("div", "daily-flow-week-all-day-gutter"));
     for (const date of days) {
       const column = createEl("section", "daily-flow-week-column");
-      if (core.isToday(date)) {
-        column.addClass("is-today");
-      }
-      const title = createEl("button", "daily-flow-week-date");
-      title.appendChild(createEl("span", "daily-flow-week-day-number", String(Number(date.slice(8, 10)))));
-      const lunar = core.formatLunarDay(date);
-      if (lunar) {
-        title.appendChild(createEl("span", "daily-flow-lunar", lunar));
-      }
-      title.addEventListener("click", (event) => {
-        event.stopPropagation();
-        this.openTaskModal({ dueDate: date });
-      });
+      const title = createEl("button", "daily-flow-week-date", date);
+      title.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
       column.appendChild(title);
-
       const tasks = this.tasksForDate(date);
+      if (tasks.length === 0) {
+        column.appendChild(createEl("p", "daily-flow-empty", "No tasks"));
+      }
       for (const task of tasks) {
         const taskButton = createEl("button", "daily-flow-week-task", task.title);
         this.styleCalendarTask(taskButton, task);
-        taskButton.addEventListener("click", (event) => {
-          event.stopPropagation();
-          this.openTaskDetail(task);
-        });
+        taskButton.addEventListener("click", () => this.openTaskDetail(task));
         column.appendChild(taskButton);
       }
-      column.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
-      allDay.appendChild(column);
+      const add = createEl("button", "daily-flow-week-add", "+ Add task");
+      add.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
+      column.appendChild(add);
+      week.appendChild(column);
     }
-    week.appendChild(allDay);
-
-    const resizer = createEl("div", "daily-flow-week-resizer");
-    resizer.addEventListener("pointerdown", (event) => this.startWeekAllDayResize(event, week));
-    week.appendChild(resizer);
-
-    const timeScroll = createEl("div", "daily-flow-week-time-scroll");
-    const timeGrid = createEl("div", "daily-flow-week-time-grid");
-    for (let hour = 0; hour < 24; hour += 1) {
-      timeGrid.appendChild(createEl("div", "daily-flow-week-time-label", this.hourLabel(hour)));
-      for (const date of days) {
-        const slot = createEl("button", "daily-flow-week-time-cell");
-        slot.addEventListener("click", () => this.openTaskModal({ dueDate: date }));
-        timeGrid.appendChild(slot);
-      }
-    }
-    timeScroll.appendChild(timeGrid);
-    week.appendChild(timeScroll);
 
     main.appendChild(week);
-    requestAnimationFrame(() => {
-      timeScroll.scrollTop = 8 * 64;
-    });
-  }
-
-  weekdayLabels() {
-    const labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-    return this.plugin.data.settings.weekStartsOn === "sunday"
-      ? ["周日", ...labels.slice(0, 6)]
-      : labels;
-  }
-
-  hourLabel(hour) {
-    const suffix = hour < 12 ? "AM" : "PM";
-    const display = hour === 12 ? 12 : hour % 12;
-    return `${display} ${suffix}`;
-  }
-
-  isoWeekNumber(date) {
-    const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const day = target.getUTCDay() || 7;
-    target.setUTCDate(target.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-    return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
-  }
-
-  startWeekAllDayResize(event, week) {
-    event.preventDefault();
-    const allDay = week.querySelector(".daily-flow-week-all-day");
-    if (!allDay) {
-      return;
-    }
-    const startY = event.clientY;
-    const startHeight = allDay.getBoundingClientRect().height;
-    const doc = week.ownerDocument;
-    const move = (moveEvent) => {
-      const next = Math.max(180, Math.min(640, startHeight + moveEvent.clientY - startY));
-      this.weekAllDayHeight = next;
-      week.style.setProperty("--daily-flow-week-all-day-height", `${next}px`);
-    };
-    const up = () => {
-      doc.removeEventListener("pointermove", move);
-      doc.removeEventListener("pointerup", up);
-    };
-    doc.addEventListener("pointermove", move);
-    doc.addEventListener("pointerup", up);
   }
 
   renderFocus(main) {
@@ -545,10 +692,8 @@ class DailyFlowView extends ItemView {
 
     const layout = createEl("div", "daily-flow-focus-layout");
     const timerPane = createEl("section", "daily-flow-focus-timer");
-    const taskBinding = createEl("label", "daily-flow-focus-task-binding");
-    taskBinding.appendChild(createEl("span", "", "专注任务"));
     const taskPicker = createEl("select", "daily-flow-select daily-flow-focus-select");
-    const none = createEl("option", "", "自由专注");
+    const none = createEl("option", "", "No task");
     none.value = "";
     taskPicker.appendChild(none);
     for (const task of this.plugin.data.tasks.filter((item) => !item.completed)) {
@@ -559,9 +704,10 @@ class DailyFlowView extends ItemView {
     }
     taskPicker.addEventListener("change", () => {
       this.focus.taskId = taskPicker.value || null;
-      this.render();
     });
-    taskBinding.appendChild(taskPicker);
+
+    const focusHint = createEl("button", "daily-flow-focus-link", taskPicker.selectedOptions[0]?.textContent || "专注");
+    focusHint.addEventListener("click", () => taskPicker.focus());
 
     const ring = createEl("div", "daily-flow-focus-ring");
     ring.appendChild(createEl("div", "daily-flow-focus-time", this.currentFocusDisplay()));
@@ -577,7 +723,8 @@ class DailyFlowView extends ItemView {
       controls.appendChild(end);
     }
 
-    timerPane.appendChild(taskBinding);
+    timerPane.appendChild(taskPicker);
+    timerPane.appendChild(focusHint);
     timerPane.appendChild(ring);
     timerPane.appendChild(controls);
 
@@ -844,7 +991,6 @@ class DailyFlowView extends ItemView {
     this.activeTaskDetailId = task.id;
     this.detailDatePickerOpen = false;
     this.detailMenuOpen = false;
-    this.detailSubtasksOpen = false;
     this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || new Date();
     this.render();
   }
@@ -874,7 +1020,19 @@ class DailyFlowView extends ItemView {
 
     const card = createEl("section", "daily-flow-detail-card");
     card.addClass(`is-${presentation}`);
-    card.addEventListener("click", (event) => event.stopPropagation());
+    card.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        this.detailDatePickerOpen &&
+        target &&
+        !target.closest(".daily-flow-detail-date-picker") &&
+        !target.closest(".daily-flow-detail-date")
+      ) {
+        this.detailDatePickerOpen = false;
+        this.render();
+      }
+    });
 
     const header = createEl("div", "daily-flow-detail-header");
     if (task.kind === "note") {
@@ -889,13 +1047,14 @@ class DailyFlowView extends ItemView {
       });
       header.appendChild(checkbox);
     }
-    header.appendChild(createEl("span", "daily-flow-detail-separator", ""));
-
-    const date = createEl("button", "daily-flow-detail-date", this.taskDetailDateLabel(task));
+    const date = createEl("button", "daily-flow-detail-date");
+    date.appendChild(createTickTickIcon("calendar-days"));
+    date.appendChild(createEl("span", "daily-flow-detail-date-text", this.taskDetailDateLabel(task)));
     if (task.dueDate && task.dueDate < core.formatLocalDate(new Date()) && !task.completed) {
       date.addClass("is-overdue");
     }
-    date.addEventListener("click", () => {
+    date.addEventListener("click", (event) => {
+      event.stopPropagation();
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
       this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || new Date();
@@ -904,6 +1063,10 @@ class DailyFlowView extends ItemView {
     header.appendChild(date);
     header.appendChild(createEl("span", "daily-flow-detail-flag", "⚐"));
     card.appendChild(header);
+
+    if (this.detailDatePickerOpen) {
+      card.appendChild(this.renderDetailDatePicker(task));
+    }
 
     const content = createEl("div", "daily-flow-detail-content");
     const titleRow = createEl("div", "daily-flow-detail-title-row");
@@ -930,26 +1093,12 @@ class DailyFlowView extends ItemView {
       }
     });
     titleRow.appendChild(title);
-    const menuButton = createEl("button", "daily-flow-detail-menu-button", "☰");
-    menuButton.addEventListener("click", () => {
-      this.detailMenuOpen = !this.detailMenuOpen;
-      this.detailDatePickerOpen = false;
-      this.render();
-    });
-    titleRow.appendChild(menuButton);
     content.appendChild(titleRow);
 
-    content.appendChild(this.renderTaskNote(task));
-    if (task.kind !== "note" && (this.detailSubtasksOpen || task.subtasks.length > 0)) {
-      content.appendChild(this.renderSubtasks(task, this.detailSubtasksOpen));
-    }
+    content.appendChild(this.renderTaskMarkdownBody(task));
 
     content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
     card.appendChild(content);
-
-    if (this.detailDatePickerOpen) {
-      card.appendChild(this.renderDetailDatePicker(task));
-    }
 
     const footer = createEl("div", "daily-flow-detail-footer");
     footer.appendChild(createEl("span", "daily-flow-detail-list", "▣ 收集箱"));
@@ -978,75 +1127,84 @@ class DailyFlowView extends ItemView {
     }
   }
 
-  renderTaskNote(task) {
-    const note = createEl("textarea", task.kind === "note" ? "daily-flow-note-body" : "daily-flow-detail-note");
-    note.placeholder = task.kind === "note" ? "记录你的想法，或 使用模板" : "描述";
-    note.value = task.note || "";
-    note.addEventListener("blur", async () => {
-      if (note.value !== task.note) {
-        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: note.value }));
+  renderTaskMarkdownBody(task) {
+    const wrapper = createEl("div", "daily-flow-detail-md-wrapper");
+    const body = createEl("div", "daily-flow-detail-md-body");
+    wrapper.appendChild(body);
+
+    let currentMarkdown = this.getTaskMarkdownText(task);
+    const saveMarkdown = async () => {
+      const markdownText = currentMarkdown.trimEnd();
+      if (markdownText !== task.note) {
+        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { note: markdownText }));
         this.render();
       }
+    };
+
+    this.activeMarkdownEditor = createDailyFlowMarkdownEditor(body, currentMarkdown, {
+      slashCommands: this.plugin.data.settings.slashCommands,
+      onChange: (markdownText) => {
+        currentMarkdown = markdownText;
+      },
+      onSlashTrigger: (view) => {
+        this.renderCodeMirrorSlashMenu(wrapper, view, this.plugin.data.settings.slashCommands);
+      },
+      onBlur: saveMarkdown
     });
-    return note;
+    return wrapper;
   }
 
-  renderSubtasks(task, showAdd) {
-    const section = createEl("div", "daily-flow-subtasks");
-    for (const subtask of task.subtasks) {
-      const row = createEl("label", "daily-flow-subtask-row");
-      const check = createEl("input", "");
-      check.type = "checkbox";
-      check.checked = subtask.completed;
-      check.addEventListener("change", async () => {
-        const subtasks = task.subtasks.map((item) => item.id === subtask.id ? { ...item, completed: check.checked } : item);
-        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { subtasks }));
-        this.render();
-      });
-      const input = createEl("input", "daily-flow-subtask-title");
-      input.type = "text";
-      input.value = subtask.title;
-      input.addEventListener("blur", async () => {
-        const nextTitle = input.value.trim();
-        const subtasks = task.subtasks
-          .map((item) => item.id === subtask.id ? { ...item, title: nextTitle || item.title } : item);
-        await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { subtasks }));
-        this.render();
-      });
-      row.appendChild(check);
-      row.appendChild(input);
-      section.appendChild(row);
+  renderCodeMirrorSlashMenu(wrapper, view, commands) {
+    this.clearSlashCommandMenu(wrapper);
+    const trigger = getCodeMirrorSlashTrigger(view);
+    if (!trigger) {
+      return;
+    }
+    const query = trigger.query.toLowerCase();
+    const options = getEditorSlashCommands(commands)
+      .filter((command) => command.label.toLowerCase().includes(query))
+      .slice(0, 8);
+    if (!options.length) {
+      return;
     }
 
-    if (showAdd) {
-      const add = createEl("input", "daily-flow-subtask-add");
-      add.type = "text";
-      add.placeholder = "换行即可添加检查事项";
-      add.addEventListener("keydown", async (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          const title = add.value.trim();
-          if (title) {
-            await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-              subtasks: [...task.subtasks, { title, completed: false }]
-            }));
-            this.render();
-          }
-        }
+    const menu = createEl("div", "daily-flow-slash-menu");
+    positionCodeMirrorSlashMenu(menu, wrapper, view, trigger.end);
+    for (const command of options) {
+      const item = createEl("button", "daily-flow-slash-item");
+      item.type = "button";
+      item.appendChild(createEl("span", "daily-flow-slash-label", command.label));
+      item.appendChild(createEl("code", "daily-flow-slash-snippet", command.insertText.replace(/\n/g, "\\n")));
+      item.addEventListener("mousedown", (event) => event.preventDefault());
+      item.addEventListener("click", () => {
+        view.dispatch({
+          changes: { from: trigger.start, to: trigger.end, insert: command.insertText },
+          selection: { anchor: trigger.start + command.insertText.length }
+        });
+        view.focus();
+        this.clearSlashCommandMenu(wrapper);
       });
-      section.appendChild(add);
+      menu.appendChild(item);
     }
-    return section;
+    wrapper.appendChild(menu);
+  }
+
+  clearSlashCommandMenu(wrapper) {
+    wrapper?.querySelector(".daily-flow-slash-menu")?.remove();
+  }
+
+  getTaskMarkdownText(task) {
+    if (task.note.trim()) {
+      return task.note;
+    }
+    return task.subtasks
+      .map((subtask) => `- [${subtask.completed ? "x" : " "}] ${subtask.title}`)
+      .join("\n");
   }
 
   renderDetailMenu(task) {
     const menu = createEl("div", "daily-flow-detail-menu");
     const items = [
-      ["└", "添加子任务", () => {
-        this.detailSubtasksOpen = true;
-        this.detailMenuOpen = false;
-        this.render();
-      }],
       ["☒", "放弃", null],
       ["◇", "标签", null],
       ["⌕", "上传附件", () => this.uploadAttachment(task)],
@@ -1056,7 +1214,6 @@ class DailyFlowView extends ItemView {
       ["▢", "创建副本", null],
       ["↪", "复制链接", null],
       ["▱", "打开便签", null],
-      ["▣", "转换为笔记", () => this.convertTaskToNote(task)],
       ["▤", "打印", null],
       ["⌫", "删除", async () => {
         await this.plugin.setDailyData(core.deleteTask(this.plugin.data, task.id));
@@ -1116,6 +1273,7 @@ class DailyFlowView extends ItemView {
     }
     this.activeImagePreview = attachment;
     this.imagePreviewScale = 1;
+    this.imagePreviewOffset = { x: 0, y: 0 };
     this.detailMenuOpen = false;
     this.render();
   }
@@ -1123,12 +1281,52 @@ class DailyFlowView extends ItemView {
   closeImagePreview() {
     this.activeImagePreview = null;
     this.imagePreviewScale = 1;
+    this.imagePreviewOffset = { x: 0, y: 0 };
     this.render();
   }
 
   setImagePreviewScale(scale) {
     this.imagePreviewScale = Math.min(3, Math.max(0.5, Math.round(scale * 100) / 100));
     this.render();
+  }
+
+  setImagePreviewOffset(offset, stage) {
+    this.imagePreviewOffset = {
+      x: Math.round(offset.x),
+      y: Math.round(offset.y)
+    };
+    if (stage) {
+      stage.style.setProperty("--daily-flow-image-x", `${this.imagePreviewOffset.x}px`);
+      stage.style.setProperty("--daily-flow-image-y", `${this.imagePreviewOffset.y}px`);
+    }
+  }
+
+  bindImagePreviewPan(stage) {
+    stage.addEventListener("mousedown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startOffset = { ...this.imagePreviewOffset };
+      stage.addClass("is-panning");
+
+      const onMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        this.setImagePreviewOffset({
+          x: startOffset.x + moveEvent.clientX - startX,
+          y: startOffset.y + moveEvent.clientY - startY
+        }, stage);
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        stage.removeClass("is-panning");
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
   }
 
   renderImagePreview(container) {
@@ -1177,6 +1375,9 @@ class DailyFlowView extends ItemView {
       this.setImagePreviewScale(this.imagePreviewScale + (event.deltaY < 0 ? 0.1 : -0.1));
     }, { passive: false });
     stage.style.setProperty("--daily-flow-image-scale", String(this.imagePreviewScale));
+    stage.style.setProperty("--daily-flow-image-x", `${this.imagePreviewOffset.x}px`);
+    stage.style.setProperty("--daily-flow-image-y", `${this.imagePreviewOffset.y}px`);
+    this.bindImagePreviewPan(stage);
     const image = createEl("img", "daily-flow-image-preview-image");
     image.src = source;
     image.alt = this.activeImagePreview.name || "Image preview";
@@ -1195,15 +1396,6 @@ class DailyFlowView extends ItemView {
     this.focus.running = true;
     this.focus.startedAt = new Date();
     this.startFocusInterval();
-    this.render();
-  }
-
-  async convertTaskToNote(task) {
-    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
-      kind: "note",
-      note: task.note || ""
-    }));
-    this.detailMenuOpen = false;
     this.render();
   }
 
@@ -1306,8 +1498,6 @@ class DailyFlowView extends ItemView {
   styleCalendarTask(button, task) {
     if (task.completed) {
       button.addClass("is-completed");
-    } else {
-      button.addClass("is-todo");
     }
   }
 
@@ -1327,8 +1517,6 @@ class DailyFlowView extends ItemView {
     this.focus.running = false;
     this.focus.paused = false;
     this.focus.startedAt = null;
-    this.focus.pausedAt = null;
-    this.focus.pausedSeconds = 0;
     this.focus.elapsedSeconds = 0;
     this.focus.plannedMinutes = this.plugin.data.settings.defaultFocusMinutes;
     this.focus.remainingSeconds = this.focus.plannedMinutes * 60;
@@ -1337,23 +1525,15 @@ class DailyFlowView extends ItemView {
   toggleFocus() {
     if (!this.focus.running && !this.focus.paused) {
       this.focus.running = true;
-      this.focus.paused = false;
       this.focus.startedAt = new Date();
-      this.focus.pausedAt = null;
-      this.focus.pausedSeconds = 0;
       this.startFocusInterval();
     } else if (this.focus.running) {
       this.focus.running = false;
       this.focus.paused = true;
-      this.focus.pausedAt = new Date();
       this.stopFocusInterval();
     } else if (this.focus.paused) {
-      if (this.focus.pausedAt) {
-        this.focus.pausedSeconds += Math.max(0, Math.round((Date.now() - this.focus.pausedAt.getTime()) / 1000));
-      }
       this.focus.running = true;
       this.focus.paused = false;
-      this.focus.pausedAt = null;
       this.startFocusInterval();
     }
     this.render();
@@ -1386,20 +1566,6 @@ class DailyFlowView extends ItemView {
     }
   }
 
-  activeFocusSeconds(endedAt) {
-    if (!this.focus.startedAt) {
-      return 0;
-    }
-    if (this.focus.mode === "stopwatch") {
-      return this.focus.elapsedSeconds;
-    }
-    const totalSeconds = Math.max(0, Math.round((endedAt.getTime() - this.focus.startedAt.getTime()) / 1000));
-    const currentPause = this.focus.pausedAt
-      ? Math.max(0, Math.round((endedAt.getTime() - this.focus.pausedAt.getTime()) / 1000))
-      : 0;
-    return Math.max(0, totalSeconds - this.focus.pausedSeconds - currentPause);
-  }
-
   async endFocus(completed) {
     if (!this.focus.startedAt) {
       this.resetFocusTimer();
@@ -1407,7 +1573,7 @@ class DailyFlowView extends ItemView {
       return;
     }
     const endedAt = new Date();
-    const elapsedSeconds = this.activeFocusSeconds(endedAt);
+    const elapsedSeconds = Math.max(0, Math.round((endedAt.getTime() - this.focus.startedAt.getTime()) / 1000));
     const actualMinutes = Math.max(1, Math.round(elapsedSeconds / 60));
     await this.plugin.setDailyData(core.createFocusSession(this.plugin.data, {
       taskId: this.focus.taskId,
@@ -1561,6 +1727,37 @@ class TaskModal extends Modal {
   }
 }
 
+const TICKTICK_ICONS = {
+  "check-square": '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="m8 12 2.6 2.6L16.5 9"></path></svg>',
+  "calendar-days": '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M8 3v4M16 3v4M4 10h16M8 14h2M12 14h2M16 14h2M8 17h2M12 17h2"></path></svg>',
+  target: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg>',
+  "calendar-day": '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M8 3v4M16 3v4M4 10h16"></path><path d="M10 15h4"></path></svg>',
+  "calendar-week": '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M8 3v4M16 3v4M4 10h16"></path><path d="M8 15h8"></path></svg>',
+  inbox: '<svg viewBox="0 0 24 24"><path d="M5 11 8 5h8l3 6v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"></path><path d="M5 12h4l1.5 2h3L15 12h4"></path></svg>',
+  "check-circle": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="m8.5 12 2.2 2.2 4.8-5"></path></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M8 7l1-3h6l1 3M7 7l1 13h8l1-13"></path></svg>',
+  sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>',
+  sunrise: '<svg viewBox="0 0 24 24"><path d="M4 18h16M7 15a5 5 0 0 1 10 0M12 3v7M8 7l4-4 4 4"></path></svg>',
+  "calendar-plus": '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M8 3v4M16 3v4M4 10h16M12 13v4M10 15h4"></path><path d="M7.5 15.5h1.8M8.4 14.6v1.8"></path></svg>',
+  "calendar-x": '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M8 3v4M16 3v4M4 10h16M10 14l4 4M14 14l-4 4"></path></svg>',
+  flag: '<svg viewBox="0 0 24 24"><path d="M6 20V5h10l-1.5 4L16 13H6"></path></svg>',
+  subtask: '<svg viewBox="0 0 24 24"><path d="M5 7h6M5 12h10M5 17h14"></path><path d="M17 6v4M15 8h4"></path></svg>',
+  pin: '<svg viewBox="0 0 24 24"><path d="m8 14-3 5 5-3 7-7 2-4-4 2z"></path></svg>',
+  "archive-x": '<svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM4 4h16v3H4zM9 12l6 6M15 12l-6 6"></path></svg>',
+  "move-right": '<svg viewBox="0 0 24 24"><path d="M4 7h10M4 12h14M4 17h10M16 9l3 3-3 3"></path></svg>',
+  tag: '<svg viewBox="0 0 24 24"><path d="M4 12V5h7l9 9-7 7z"></path><circle cx="8" cy="9" r="1"></circle></svg>',
+  copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15V6a1 1 0 0 1 1-1h9"></path></svg>',
+  link: '<svg viewBox="0 0 24 24"><path d="M9.5 14.5 14.5 9.5"></path><path d="M8 11a4 4 0 0 1 0-6l1-1a4 4 0 0 1 6 6l-1 1"></path><path d="M10 13l-1 1a4 4 0 0 0 6 6l1-1a4 4 0 0 0 0-6"></path></svg>',
+  "sticky-note": '<svg viewBox="0 0 24 24"><path d="M6 4h12v11l-5 5H6z"></path><path d="M13 20v-5h5"></path></svg>',
+  "file-text": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path></svg>'
+};
+
+function createTickTickIcon(name) {
+  const icon = createEl("span", "daily-flow-ticktick-icon");
+  icon.innerHTML = TICKTICK_ICONS[name] || "";
+  return icon;
+}
+
 function renderAttachments(attachments, onPreview) {
   const section = createEl("div", "daily-flow-attachments");
   if (!Array.isArray(attachments) || attachments.length === 0) {
@@ -1641,8 +1838,242 @@ function readAttachmentFile(file) {
   });
 }
 
+function clampTaskNavPaneWidth(width) {
+  return Math.min(TASK_NAV_PANE_MAX_WIDTH, Math.max(TASK_NAV_PANE_MIN_WIDTH, Math.round(Number(width) || 320)));
+}
+
 function clampTaskListPaneWidth(width) {
   return Math.min(TASK_LIST_PANE_MAX_WIDTH, Math.max(TASK_LIST_PANE_MIN_WIDTH, Math.round(Number(width) || 540)));
+}
+
+function createDailyFlowMarkdownEditor(parent, markdownText, options) {
+  return new EditorView({
+    parent,
+    state: EditorState.create({
+      doc: markdownText || "",
+      extensions: [
+        history(),
+        markdown(),
+        keymap.of([...defaultKeymap, ...historyKeymap]),
+        dailyFlowMarkdownPreview(),
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            options.onChange(update.state.doc.toString());
+          }
+          if (update.docChanged || update.selectionSet) {
+            options.onSlashTrigger(update.view);
+          }
+        }),
+        EditorView.domEventHandlers({
+          blur() {
+            options.onSlashTrigger(null);
+            options.onBlur();
+          }
+        })
+      ]
+    })
+  });
+}
+
+function dailyFlowMarkdownPreview() {
+  return ViewPlugin.fromClass(class {
+    constructor(view) {
+      this.decorations = buildDailyFlowMarkdownDecorations(view);
+    }
+
+    update(update) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildDailyFlowMarkdownDecorations(update.view);
+      }
+    }
+  }, {
+    decorations: (plugin) => plugin.decorations
+  });
+}
+
+function buildDailyFlowMarkdownDecorations(view) {
+  const builder = new RangeSetBuilder();
+  for (const { from, to } of view.visibleRanges) {
+    let pos = from;
+    while (pos <= to) {
+      const line = view.state.doc.lineAt(pos);
+      addLineMarkdownDecorations(builder, line);
+      if (line.to >= to) {
+        break;
+      }
+      pos = line.to + 1;
+    }
+  }
+  return builder.finish();
+}
+
+function addLineMarkdownDecorations(builder, line) {
+  const text = line.text;
+  const todo = /^(\s*)-\s+\[([ xX])\]\s?/.exec(text);
+  if (todo) {
+    const markerFrom = line.from + todo[1].length;
+    const markerTo = line.from + todo[0].length;
+    const checkedAt = markerFrom + 3;
+    builder.add(markerFrom, markerTo, Decoration.replace({
+      widget: new TodoCheckboxWidget(todo[2].toLowerCase() === "x", checkedAt),
+      inclusive: false
+    }));
+    addStrikeDecorations(builder, line);
+    return;
+  }
+
+  const bullet = /^(\s*)[-*]\s+/.exec(text);
+  if (bullet) {
+    const markerFrom = line.from + bullet[1].length;
+    const markerTo = line.from + bullet[0].length;
+    builder.add(markerFrom, markerTo, Decoration.replace({
+      widget: new BulletWidget(),
+      inclusive: false
+    }));
+    addStrikeDecorations(builder, line);
+    return;
+  }
+
+  const divider = /^(\s*)---\s*$/.exec(text);
+  if (divider) {
+    const markerFrom = line.from + divider[1].length;
+    const markerTo = line.to;
+    builder.add(markerFrom, markerTo, Decoration.replace({
+      widget: new DividerWidget(),
+      inclusive: false
+    }));
+    return;
+  }
+
+  addStrikeDecorations(builder, line);
+}
+
+function addStrikeDecorations(builder, line) {
+  const pattern = /~~([^~]+)~~/g;
+  let match = pattern.exec(line.text);
+  while (match) {
+    const from = line.from + match.index;
+    const innerFrom = from + 2;
+    const innerTo = from + match[0].length - 2;
+    const to = from + match[0].length;
+    builder.add(from, innerFrom, Decoration.replace({ inclusive: false }));
+    builder.add(innerFrom, innerTo, Decoration.mark({ class: "daily-flow-cm-strike" }));
+    builder.add(innerTo, to, Decoration.replace({ inclusive: false }));
+    match = pattern.exec(line.text);
+  }
+}
+
+class TodoCheckboxWidget extends WidgetType {
+  constructor(checked, checkedAt) {
+    super();
+    this.checked = checked;
+    this.checkedAt = checkedAt;
+  }
+
+  eq(other) {
+    return other.checked === this.checked && other.checkedAt === this.checkedAt;
+  }
+
+  toDOM(view) {
+    const checkbox = document.createElement("input");
+    checkbox.className = "daily-flow-cm-todo";
+    checkbox.type = "checkbox";
+    checkbox.checked = this.checked;
+    checkbox.addEventListener("mousedown", (event) => event.preventDefault());
+    checkbox.addEventListener("change", () => {
+      view.dispatch({
+        changes: {
+          from: this.checkedAt,
+          to: this.checkedAt + 1,
+          insert: this.checked ? " " : "x"
+        }
+      });
+    });
+    return checkbox;
+  }
+
+  ignoreEvent() {
+    return false;
+  }
+}
+
+class BulletWidget extends WidgetType {
+  toDOM() {
+    const bullet = document.createElement("span");
+    bullet.className = "daily-flow-cm-bullet";
+    return bullet;
+  }
+}
+
+class DividerWidget extends WidgetType {
+  toDOM() {
+    const divider = document.createElement("span");
+    divider.className = "daily-flow-cm-divider";
+    return divider;
+  }
+}
+
+function getEditorSlashCommands(commands) {
+  const normalized = Array.isArray(commands)
+    ? commands
+        .filter((command) => command && typeof command.label === "string" && typeof command.insertText === "string")
+        .filter((command) => command.label.trim() && command.insertText)
+    : [];
+  return normalized.length ? normalized : core.DEFAULT_SETTINGS.slashCommands;
+}
+
+function getCodeMirrorSlashTrigger(view) {
+  if (!view) {
+    return null;
+  }
+  const cursor = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(cursor);
+  const before = line.text.slice(0, cursor - line.from);
+  const match = /(?:^|\s)\/([^\s/]*)$/.exec(before);
+  if (!match) {
+    return null;
+  }
+  return {
+    start: line.from + before.length - match[1].length - 1,
+    end: cursor,
+    query: match[1]
+  };
+}
+
+function positionCodeMirrorSlashMenu(menu, wrapper, view, position) {
+  const wrapperRect = wrapper.getBoundingClientRect();
+  const coords = view.coordsAtPos(position);
+  if (!coords) {
+    menu.style.top = "28px";
+    menu.style.left = "0";
+    return;
+  }
+  const left = Math.max(0, Math.min(coords.left - wrapperRect.left, wrapperRect.width - 300));
+  menu.style.top = `${coords.bottom - wrapperRect.top + 6}px`;
+  menu.style.left = `${left}px`;
+}
+
+function formatSlashCommandsInput(commands) {
+  return commands
+    .map((command) => `${command.label} | ${command.insertText.replace(/\n/g, "\\n")}`)
+    .join("\n");
+}
+
+function parseSlashCommandsInput(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => {
+      const separator = line.indexOf("|");
+      if (separator === -1) {
+        return null;
+      }
+      const rawInsertText = line.slice(separator + 1).replace(/^ /, "");
+      return {
+        label: line.slice(0, separator).trim(),
+        insertText: rawInsertText.replace(/\\n/g, "\n")
+      };
+    })
+    .filter(Boolean);
 }
 
 class DailyFlowSettingTab extends PluginSettingTab {
@@ -1689,6 +2120,19 @@ class DailyFlowSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             await this.plugin.setDailyData(core.updateSettings(this.plugin.data, { showCompletedTasks: value }));
           });
+      });
+
+    new Setting(containerEl)
+      .setName("Slash commands")
+      .setDesc("One command per line: label | inserted markdown. Use \\n for line breaks.")
+      .addTextArea((text) => {
+        text.inputEl.rows = 5;
+        text.setValue(formatSlashCommandsInput(this.plugin.data.settings.slashCommands));
+        text.onChange(async (value) => {
+          await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+            slashCommands: parseSlashCommandsInput(value)
+          }));
+        });
       });
 
     new Setting(containerEl)
@@ -1745,10 +2189,21 @@ function formatChineseDate(value, now = new Date()) {
     return "无日期";
   }
   const monthDay = `${date.getMonth() + 1}月${date.getDate()}日`;
-  if (core.isToday(value, now)) {
+  const today = core.parseLocalDate(core.formatLocalDate(now));
+  const diff = today ? Math.round((date.getTime() - today.getTime()) / 86400000) : null;
+  if (diff === 0) {
     return `今天, ${monthDay}`;
   }
+  if (diff === 1) {
+    return `明天, ${monthDay}`;
+  }
+  if (diff === 2) {
+    return `后天, ${monthDay}`;
+  }
   const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  if (diff !== null && diff > 2 && diff <= 7) {
+    return `下${weekdays[date.getDay()]}, ${monthDay}`;
+  }
   return `${weekdays[date.getDay()]}, ${monthDay}`;
 }
 

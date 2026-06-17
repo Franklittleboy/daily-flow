@@ -24,14 +24,31 @@ test("normalizeData fills missing data with safe defaults", () => {
   assert.equal(data.settings.weekStartsOn, "monday");
   assert.equal(data.settings.showCompletedTasks, false);
   assert.equal(data.settings.taskListPaneWidth, 540);
+  assert.equal(data.settings.taskNavPaneWidth, 320);
+  assert.deepEqual(data.settings.slashCommands, [
+    { label: "切换列表/待办事项", insertText: "- [ ] " },
+    { label: "插入分割线", insertText: "\n---\n" },
+    { label: "添加删除线", insertText: "~~文本~~" }
+  ]);
 });
 
 test("settings preserve the persisted task detail split width", () => {
-  const data = updateSettings(createEmptyData(), { taskListPaneWidth: 680 });
+  const data = updateSettings(createEmptyData(), { taskListPaneWidth: 680, taskNavPaneWidth: 280 });
   assert.equal(data.settings.taskListPaneWidth, 680);
+  assert.equal(data.settings.taskNavPaneWidth, 280);
 
   assert.equal(normalizeData({ settings: { taskListPaneWidth: 200 } }).settings.taskListPaneWidth, 360);
   assert.equal(normalizeData({ settings: { taskListPaneWidth: 900 } }).settings.taskListPaneWidth, 760);
+  assert.equal(normalizeData({ settings: { taskNavPaneWidth: 120 } }).settings.taskNavPaneWidth, 240);
+  assert.equal(normalizeData({ settings: { taskNavPaneWidth: 520 } }).settings.taskNavPaneWidth, 420);
+});
+
+test("empty slash command settings fall back to DailyFlow defaults", () => {
+  assert.deepEqual(normalizeData({ settings: { slashCommands: [] } }).settings.slashCommands, [
+    { label: "切换列表/待办事项", insertText: "- [ ] " },
+    { label: "插入分割线", insertText: "\n---\n" },
+    { label: "添加删除线", insertText: "~~文本~~" }
+  ]);
 });
 
 test("createTask adds a dated incomplete task", () => {
@@ -82,6 +99,30 @@ test("tasks preserve subtasks, attachments, and note mode", () => {
   assert.equal(updated.attachments.length, 2);
   assert.equal(updated.attachments[1].mime, "image/png");
   assert.equal(updated.attachments[1].dataUrl, "data:image/png;base64,abc123");
+});
+
+test("updateTask can switch notes back to tasks without dropping content", () => {
+  let data = createTask(createEmptyData(), {
+    title: "Checklist",
+    kind: "note",
+    note: "Line 1\nLine 2",
+    subtasks: [{ title: "Existing subtask", completed: true }]
+  });
+  const taskId = data.tasks[0].id;
+
+  data = updateTask(data, taskId, { kind: "task" });
+
+  assert.equal(data.tasks[0].kind, "task");
+  assert.equal(data.tasks[0].note, "Line 1\nLine 2");
+  assert.equal(data.tasks[0].subtasks.length, 1);
+  assert.equal(data.tasks[0].subtasks[0].title, "Existing subtask");
+  assert.equal(data.tasks[0].subtasks[0].completed, true);
+
+  data = updateTask(data, taskId, { kind: "note" });
+
+  assert.equal(data.tasks[0].kind, "note");
+  assert.equal(data.tasks[0].note, "Line 1\nLine 2");
+  assert.equal(data.tasks[0].subtasks[0].title, "Existing subtask");
 });
 
 test("createTask rejects an empty title", () => {
@@ -159,13 +200,23 @@ test("updateSettings merges supported settings", () => {
   const data = updateSettings(createEmptyData(), {
     defaultFocusMinutes: 45,
     weekStartsOn: "sunday",
-    showCompletedTasks: true
+    showCompletedTasks: true,
+    slashCommands: [
+      { label: "引用", insertText: "> " },
+      { label: "空命令", insertText: "" },
+      { label: "删除线", insertText: "~~文本~~" }
+    ]
   });
 
   assert.deepEqual(data.settings, {
     defaultFocusMinutes: 45,
     weekStartsOn: "sunday",
     showCompletedTasks: true,
-    taskListPaneWidth: 540
+    taskListPaneWidth: 540,
+    taskNavPaneWidth: 320,
+    slashCommands: [
+      { label: "引用", insertText: "> " },
+      { label: "删除线", insertText: "~~文本~~" }
+    ]
   });
 });

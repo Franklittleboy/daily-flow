@@ -1,8 +1,16 @@
+const DEFAULT_SLASH_COMMANDS = [
+  { label: "切换列表/待办事项", insertText: "- [ ] " },
+  { label: "插入分割线", insertText: "\n---\n" },
+  { label: "添加删除线", insertText: "~~文本~~" }
+];
+
 const DEFAULT_SETTINGS = {
   defaultFocusMinutes: 25,
   weekStartsOn: "monday",
   showCompletedTasks: false,
-  taskListPaneWidth: 540
+  taskListPaneWidth: 540,
+  taskNavPaneWidth: 320,
+  slashCommands: DEFAULT_SLASH_COMMANDS
 };
 
 function pad2(value) {
@@ -79,66 +87,6 @@ function getMonthGrid(year, monthIndex, weekStartsOn = "monday") {
   return cells;
 }
 
-const CHINESE_LUNAR_DAYS = [
-  "",
-  "初一",
-  "初二",
-  "初三",
-  "初四",
-  "初五",
-  "初六",
-  "初七",
-  "初八",
-  "初九",
-  "初十",
-  "十一",
-  "十二",
-  "十三",
-  "十四",
-  "十五",
-  "十六",
-  "十七",
-  "十八",
-  "十九",
-  "二十",
-  "廿一",
-  "廿二",
-  "廿三",
-  "廿四",
-  "廿五",
-  "廿六",
-  "廿七",
-  "廿八",
-  "廿九",
-  "三十"
-];
-
-function createLunarFormatter() {
-  if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat !== "function") {
-    return null;
-  }
-  try {
-    return new Intl.DateTimeFormat("zh-CN-u-ca-chinese", { month: "long", day: "numeric" });
-  } catch {
-    return null;
-  }
-}
-
-function formatLunarDay(dateString, formatter = createLunarFormatter()) {
-  const date = parseLocalDate(dateString);
-  if (!date || !formatter || typeof formatter.formatToParts !== "function") {
-    return "";
-  }
-
-  const parts = formatter.formatToParts(date);
-  const month = parts.find((part) => part.type === "month")?.value || "";
-  const day = Number(parts.find((part) => part.type === "day")?.value);
-  if (!Number.isInteger(day) || day < 1 || day >= CHINESE_LUNAR_DAYS.length) {
-    return "";
-  }
-  return day === 1 ? month : CHINESE_LUNAR_DAYS[day];
-}
-
 function createId(prefix) {
   const random = Math.random().toString(36).slice(2, 10);
   return `${prefix}-${Date.now().toString(36)}-${random}`;
@@ -148,12 +96,39 @@ function createEmptyData() {
   return {
     tasks: [],
     focusSessions: [],
-    settings: { ...DEFAULT_SETTINGS }
+    settings: cloneSettings(DEFAULT_SETTINGS)
+  };
+}
+
+function normalizeSlashCommand(command) {
+  if (!command || typeof command !== "object") {
+    return null;
+  }
+  const label = typeof command.label === "string" ? command.label.trim() : "";
+  const insertText = typeof command.insertText === "string" ? command.insertText : "";
+  if (!label || !insertText) {
+    return null;
+  }
+  return { label, insertText };
+}
+
+function normalizeSlashCommands(commands) {
+  if (!Array.isArray(commands)) {
+    return DEFAULT_SLASH_COMMANDS.map((command) => ({ ...command }));
+  }
+  const normalized = commands.map(normalizeSlashCommand).filter(Boolean);
+  return normalized.length ? normalized : DEFAULT_SLASH_COMMANDS.map((command) => ({ ...command }));
+}
+
+function cloneSettings(settings) {
+  return {
+    ...settings,
+    slashCommands: normalizeSlashCommands(settings?.slashCommands)
   };
 }
 
 function normalizeSettings(settings) {
-  const next = { ...DEFAULT_SETTINGS };
+  const next = cloneSettings(DEFAULT_SETTINGS);
   if (!settings || typeof settings !== "object") {
     return next;
   }
@@ -168,6 +143,12 @@ function normalizeSettings(settings) {
   }
   if (Number.isFinite(settings.taskListPaneWidth)) {
     next.taskListPaneWidth = Math.min(760, Math.max(360, Math.round(settings.taskListPaneWidth)));
+  }
+  if (Number.isFinite(settings.taskNavPaneWidth)) {
+    next.taskNavPaneWidth = Math.min(420, Math.max(240, Math.round(settings.taskNavPaneWidth)));
+  }
+  if (Array.isArray(settings.slashCommands)) {
+    next.slashCommands = normalizeSlashCommands(settings.slashCommands);
   }
   return next;
 }
@@ -257,7 +238,7 @@ function cloneData(data) {
   return {
     tasks: normalized.tasks.map((task) => ({ ...task })),
     focusSessions: normalized.focusSessions.map((session) => ({ ...session })),
-    settings: { ...normalized.settings }
+    settings: cloneSettings(normalized.settings)
   };
 }
 
@@ -298,7 +279,7 @@ function updateTask(data, taskId, changes) {
     title,
     dueDate: Object.hasOwn(changes, "dueDate") ? changes.dueDate || null : next.tasks[index].dueDate,
     note: Object.hasOwn(changes, "note") ? String(changes.note || "") : next.tasks[index].note,
-    kind: Object.hasOwn(changes, "kind") && changes.kind === "note" ? "note" : next.tasks[index].kind,
+    kind: Object.hasOwn(changes, "kind") ? (changes.kind === "note" ? "note" : "task") : next.tasks[index].kind,
     subtasks: Object.hasOwn(changes, "subtasks") && Array.isArray(changes.subtasks)
       ? changes.subtasks.map(normalizeSubtask).filter(Boolean)
       : next.tasks[index].subtasks,
@@ -406,7 +387,6 @@ module.exports = {
   startOfWeek,
   getWeekDays,
   getMonthGrid,
-  formatLunarDay,
   createEmptyData,
   normalizeData,
   createTask,
