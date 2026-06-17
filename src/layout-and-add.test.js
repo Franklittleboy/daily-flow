@@ -33,7 +33,7 @@ test("task pages add a TickTick-like list column with a persisted draggable spli
   assert.match(styles, /\.daily-flow-task-board\s*{[^}]*grid-template-columns:\s*var\(--daily-flow-task-nav-width,\s*320px\)\s+6px\s+var\(--daily-flow-task-list-width,\s*540px\)\s+6px\s+minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.daily-flow-task-sidebar\s*{[^}]*padding:\s*22px 14px/s);
   assert.match(styles, /\.daily-flow-task-nav-resizer\s*{[^}]*cursor:\s*col-resize/s);
-  assert.match(styles, /\.daily-flow-main\.is-calendar,\s*\.daily-flow-main\.is-focus\s*{[^}]*padding:\s*22px 30px/s);
+  assert.match(styles, /\.daily-flow-main\.is-focus\s*{[^}]*padding:\s*22px 30px/s);
   assert.doesNotMatch(source, /renderCalendar\(main\)[\s\S]{0,200}renderTaskSidebar/);
 });
 
@@ -43,7 +43,7 @@ test("DailyFlow keeps task add affordances out of the task list body", () => {
   assert.doesNotMatch(source, /daily-flow-add-task-row/);
   assert.match(source, /renderHeader\(label,\s*\(\) => this\.openTaskModal/);
   assert.match(source, /daily-flow-day-add/);
-  assert.match(source, /daily-flow-week-add/);
+  assert.match(source, /daily-flow-week-time-cell/);
 });
 
 test("month view renders readable task buttons inside date cells", () => {
@@ -51,11 +51,37 @@ test("month view renders readable task buttons inside date cells", () => {
   const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
 
   assert.match(source, /daily-flow-day-top/);
+  assert.match(source, /daily-flow-date-line/);
+  assert.match(source, /daily-flow-lunar/);
+  assert.match(source, /core\.formatLunarDay\(cell\.date\)/);
   assert.match(source, /createEl\("button", "daily-flow-calendar-task"/);
+  assert.match(source, /tasks\.slice\(0,\s*6\)/);
   assert.match(source, /this\.openTaskDetail\(task\)/);
   assert.match(source, /event\.stopPropagation\(\)/);
-  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*min-height:\s*22px/s);
+  assert.match(styles, /\.daily-flow-day-cell\s*{[^}]*gap:\s*2px/s);
+  assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*grid-template-rows:\s*20px/s);
+  assert.match(styles, /\.daily-flow-weekday\s*{[^}]*min-height:\s*20px/s);
+  assert.match(styles, /\.daily-flow-weekday\s*{[^}]*height:\s*20px/s);
+  assert.match(styles, /\.daily-flow-weekday\s*{[^}]*padding:\s*3px 6px/s);
+  assert.match(styles, /\.daily-flow-lunar\s*{[^}]*color:\s*var\(--text-faint\)/s);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*height:\s*16px/s);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*min-height:\s*0/s);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*padding:\s*0 6px/s);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*line-height:\s*14px/s);
   assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*font-weight:\s*600/s);
+  assert.match(styles, /\.daily-flow-calendar-task\s*{[^}]*justify-content:\s*flex-start/s);
+});
+
+test("calendar layout gives more width and height to the calendar grid", () => {
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(styles, /\.daily-flow-main\s*{[^}]*padding:\s*14px 18px/s);
+  assert.match(styles, /\.daily-flow-main\s*{[^}]*display:\s*flex/s);
+  assert.match(styles, /\.daily-flow-main\s*{[^}]*flex-direction:\s*column/s);
+  assert.match(styles, /\.daily-flow-main\.is-calendar \.daily-flow-header\s*{[^}]*margin-bottom:\s*10px/s);
+  assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*flex:\s*1 1 auto/s);
+  assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*min-height:\s*0/s);
+  assert.match(styles, /\.daily-flow-month-grid\s*{[^}]*grid-auto-rows:\s*minmax\(0,\s*1fr\)/s);
 });
 
 test("calendar task detail popover supports completion and date picking", () => {
@@ -233,6 +259,30 @@ test("calendar task bars use deeper todo color and lighter completed color", () 
   assert.match(styles, /--daily-flow-accent-bar:\s*#4f6ff2/);
   assert.match(styles, /\.daily-flow-calendar-task\.is-completed,\s*\.daily-flow-week-task\.is-completed\s*{[^}]*background:\s*#d7defc/s);
   assert.match(styles, /\.daily-flow-calendar-task\.is-completed,\s*\.daily-flow-week-task\.is-completed\s*{[^}]*color:\s*#7a8294/s);
+});
+
+test("week view task rows stay compact for dense daily schedules", () => {
+  const source = readFileSync(path.resolve(__dirname, "obsidian-plugin.js"), "utf8");
+  const styles = readFileSync(path.resolve(__dirname, "../styles.css"), "utf8");
+
+  assert.match(source, /daily-flow-week-head/);
+  assert.match(source, /daily-flow-week-all-day/);
+  assert.match(source, /daily-flow-week-resizer/);
+  assert.match(source, /daily-flow-week-time-scroll/);
+  assert.match(source, /daily-flow-week-time-grid/);
+  assert.match(source, /for \(let hour = 0; hour < 24; hour \+= 1\)/);
+  assert.match(styles, /\.daily-flow-week-task\s*{[^}]*height:\s*18px/s);
+  assert.match(styles, /\.daily-flow-week-task\s*{[^}]*min-height:\s*0/s);
+  assert.match(styles, /\.daily-flow-week-task\s*{[^}]*padding:\s*0 6px/s);
+  assert.match(styles, /\.daily-flow-week-task\s*{[^}]*line-height:\s*16px/s);
+  assert.match(styles, /\.daily-flow-week-task\s*{[^}]*justify-content:\s*flex-start/s);
+  assert.match(styles, /\.daily-flow-week-task\s*{[^}]*margin-bottom:\s*3px/s);
+  assert.match(styles, /\.daily-flow-week\s*{[^}]*grid-template-columns:\s*52px repeat\(7,\s*minmax\(110px,\s*1fr\)\)/s);
+  assert.match(styles, /\.daily-flow-week\s*{[^}]*grid-template-rows:\s*24px var\(--daily-flow-week-all-day-height,\s*minmax\(260px,\s*1fr\)\) 6px minmax\(300px,\s*1fr\)/s);
+  assert.match(styles, /\.daily-flow-week\s*{[^}]*overflow:\s*hidden/s);
+  assert.match(styles, /\.daily-flow-week-time-scroll\s*{[^}]*grid-column:\s*1 \/ -1/s);
+  assert.match(styles, /\.daily-flow-week-time-scroll\s*{[^}]*overflow-y:\s*auto/s);
+  assert.match(styles, /\.daily-flow-week-time-grid\s*{[^}]*grid-auto-rows:\s*64px/s);
 });
 
 test("task list rows use a single readable line with right-side date", () => {
