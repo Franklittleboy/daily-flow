@@ -12,7 +12,7 @@ This section overrides any older preview wording later in this file.
 ## Current Baseline
 
 - Project: DailyFlow Obsidian plugin.
-- Current local release version: `0.4.0`.
+- Current local release version: `0.5.0`.
 - Baseline branch to use for parallel feature work: `draft/0.1.10-base`.
 - Do not push to GitHub or create a GitHub Release until Frank explicitly says the feature batch is finished.
 - Local Obsidian plugin directory:
@@ -20,7 +20,7 @@ This section overrides any older preview wording later in this file.
 
 ## Current Draft State
 
-The local `0.4.0` release includes:
+The local `0.5.0` release candidate includes:
 
 - Navigation uses the narrow right icon rail from the latest task-detail polish.
 - Focus page was redesigned toward the TickTick pomodoro page:
@@ -45,11 +45,13 @@ The local `0.4.0` release includes:
   - week view keeps the all-day task area fixed while only the time grid scrolls; the time grid covers 0-24 and defaults to 8 AM
 - Month/week task detail popover exists with completion toggle and date picker.
 - Task detail popover branch update:
+  - the latest `feature/task-detail-popover` task sidebar and detail editor are merged into `feature/release-polish`
   - new task and existing-task cards use compact DailyFlow floating cards instead of Obsidian's default modal
   - title, note, date, completion state, subtasks, local attachment records, and task actions are available from the card
   - start-focus binding and conversion to a note-style detail view are exposed from the task action flow
   - task-list pages can open an existing task in a right-side detail panel while calendar pages keep the floating detail card
   - the task list/detail split is draggable and persisted in settings
+  - the task body uses a CodeMirror Markdown editor with a DailyFlow slash menu for todos, lists, dividers, and strikethrough
   - image attachments can render preview images and open in an in-plugin zoomable preview
 - Combined local preview workflow exists for merging feature branches into `.worktrees/preview-local`, testing, building, and optionally copying to Obsidian.
 
@@ -128,8 +130,8 @@ Use this as the first message in a new Codex session:
 ```text
 请先阅读 /Users/frank/Library/CloudStorage/OneDrive-个人/coding/codex/obsidian/docs/DAILYFLOW_HANDOFF.md。
 本次只处理 [替换成功能名称]，工作目录使用 [替换成对应 worktree 路径]。
-不要提交 GitHub，不要创建 Release。完成后运行测试、打包，并更新交接文件里的该功能状态。
-如果我要复制到 Obsidian 看多功能合成效果，请使用 combined local preview，不要只复制当前功能分支。
+不要提交 GitHub，不要创建 Release，不要打 tag，除非我明确授权。
+普通功能分支复制到 Obsidian 默认走最轻量预览；release-polish 复制、发布前预览或准备发布时，使用 scripts/refresh-preview.mjs --release --copy 并完整验证。
 ```
 
 ## Feature Scope Guide
@@ -145,8 +147,8 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
-  Status 2026-06-16: corrected the local `0.4.0` merge preview in `.worktrees/release-polish` to follow the latest `feature/task-detail-popover` view decisions, including the narrow right icon rail and task detail side-panel layout; updated `CHANGELOG.md`, `release-notes/0.4.0.md`, and the layout regression tests. This correction is local preview work only unless Frank explicitly asks to publish another GitHub update.
-  Only after the feature batch is approved: merge branches, update changelog/release notes, build, tag, push, and create GitHub Release.
+  Status 2026-06-17: preparing `0.5.0` release candidate in `.worktrees/release-polish`; merged the latest `feature/task-detail-popover` task sidebar and Markdown detail editor into the release branch, preserved the release preview workflow, and updated `CHANGELOG.md`, `release-notes/0.5.0.md`, `manifest.json`, `package.json`, and `versions.json`.
+  Frank has authorized copying to Obsidian and uploading to GitHub if validation passes.
 
 ## Rules For Feature Sessions
 
