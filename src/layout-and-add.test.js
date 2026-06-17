@@ -95,7 +95,7 @@ test("task popovers expose TickTick-like subtasks, attachments, focus, and note 
   assert.match(styles, /\.daily-flow-modal-card\s*{[^}]*min-height:\s*360px/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*width:\s*min\(520px,\s*calc\(100% - 48px\)\)/s);
   assert.match(styles, /\.daily-flow-detail-card\s*{[^}]*min-height:\s*360px/s);
-  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*26px/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*28px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*box-shadow:\s*0 18px 44px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*right:\s*34px/s);
   assert.match(styles, /\.daily-flow-detail-menu\s*{[^}]*bottom:\s*90px/s);
@@ -142,6 +142,8 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(source, /card\.addClass\(`is-\$\{presentation\}`\)/);
   assert.match(source, /daily-flow-detail-title-row/);
   assert.match(source, /daily-flow-detail-menu-button/);
+  assert.match(source, /toggleTaskKind\(task\)/);
+  assert.match(source, /task\.kind === "note" \? "转换为待办" : "转换为笔记"/);
   assert.match(source, /daily-flow-detail-content/);
   assert.match(source, /renderTaskNote\(task\)/);
   assert.match(source, /renderSubtasks\(task,\s*this\.detailSubtasksOpen\)/);
@@ -156,6 +158,9 @@ test("task detail content matches TickTick-like side panel and calendar popover 
   assert.match(styles, /\.daily-flow-detail-content\s*{[^}]*padding:\s*32px 34px/s);
   assert.match(styles, /\.daily-flow-detail-title-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+34px/s);
   assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*border:\s*0 !important/s);
+  assert.match(styles, /\.daily-flow-detail-title\s*{[^}]*font-size:\s*28px/s);
+  assert.match(styles, /\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*font-size:\s*18px/s);
+  assert.match(styles, /\.daily-flow-subtask-row\s*{[^}]*min-height:\s*38px/s);
   assert.match(styles, /\.daily-flow-detail-title,\s*\.daily-flow-detail-note,\s*\.daily-flow-note-body,\s*\.daily-flow-subtask-title,\s*\.daily-flow-subtask-add\s*{[^}]*box-shadow:\s*none !important/s);
   assert.match(styles, /\.daily-flow-detail-date\s*{[^}]*background:\s*transparent/s);
   assert.match(styles, /\.daily-flow-detail-footer\s*{[^}]*margin-top:\s*auto/s);
@@ -170,6 +175,9 @@ test("task rows expose a minimal TickTick-like context menu with date shortcuts"
   assert.match(source, /row\.addEventListener\("contextmenu"/);
   assert.match(source, /openTaskContextMenu\(task,\s*event\)/);
   assert.match(source, /renderTaskContextMenu\(main\)/);
+  assert.match(source, /positionTaskContextMenu\(menu\)/);
+  assert.match(source, /menu\.getBoundingClientRect\(\)/);
+  assert.match(source, /window\.innerHeight/);
   assert.match(source, /daily-flow-task-context-menu/);
   assert.match(source, /setTaskDueDate\(task,\s*core\.formatLocalDate\(new Date\(\)\)\)/);
   assert.match(source, /setTaskDueDate\(task,\s*core\.formatLocalDate\(core\.addDays\(new Date\(\),\s*1\)\)\)/);

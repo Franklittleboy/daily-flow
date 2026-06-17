@@ -963,7 +963,7 @@
   color: var(--text-normal);
   background: transparent;
   font: inherit;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -1043,7 +1043,7 @@
   grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  min-height: 46px;
+  min-height: 38px;
   border-bottom: 1px solid var(--daily-flow-line);
 }
 
@@ -1057,6 +1057,8 @@
   color: var(--text-normal);
   background: transparent;
   font: inherit;
+  font-size: 18px;
+  line-height: 1.45;
 }
 
 .daily-flow-subtask-add {

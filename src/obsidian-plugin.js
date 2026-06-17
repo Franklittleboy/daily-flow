@@ -534,6 +534,31 @@ class DailyFlowView extends ItemView {
     });
 
     container.appendChild(menu);
+    this.positionTaskContextMenu(menu);
+  }
+
+  positionTaskContextMenu(menu) {
+    if (!this.contextMenuPosition) {
+      return;
+    }
+    const margin = 12;
+    const rect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    let left = this.contextMenuPosition.x;
+    let top = this.contextMenuPosition.y;
+
+    if (left + rect.width + margin > viewportWidth) {
+      left = viewportWidth - rect.width - margin;
+    }
+    if (top + rect.height + margin > viewportHeight) {
+      top = this.contextMenuPosition.y - rect.height;
+    }
+
+    left = Math.max(margin, Math.min(left, viewportWidth - rect.width - margin));
+    top = Math.max(margin, Math.min(top, viewportHeight - rect.height - margin));
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
   }
 
   async setTaskDueDate(task, dueDate) {
@@ -1050,11 +1075,13 @@ class DailyFlowView extends ItemView {
       }
     });
     titleRow.appendChild(title);
-    const menuButton = createEl("button", "daily-flow-detail-menu-button", "☰");
+    const modeLabel = task.kind === "note" ? "转换为待办" : "转换为笔记";
+    const menuButton = createEl("button", "daily-flow-detail-menu-button");
+    menuButton.setAttribute("title", modeLabel);
+    menuButton.setAttribute("aria-label", modeLabel);
+    menuButton.appendChild(createTickTickIcon(task.kind === "note" ? "check-square" : "file-text"));
     menuButton.addEventListener("click", () => {
-      this.detailMenuOpen = !this.detailMenuOpen;
-      this.detailDatePickerOpen = false;
-      this.render();
+      this.toggleTaskKind(task);
     });
     titleRow.appendChild(menuButton);
     content.appendChild(titleRow);
@@ -1324,6 +1351,16 @@ class DailyFlowView extends ItemView {
       note: task.note || ""
     }));
     this.detailMenuOpen = false;
+    this.render();
+  }
+
+  async toggleTaskKind(task) {
+    await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, {
+      kind: task.kind === "note" ? "task" : "note"
+    }));
+    this.detailSubtasksOpen = false;
+    this.detailMenuOpen = false;
+    this.detailDatePickerOpen = false;
     this.render();
   }
 
