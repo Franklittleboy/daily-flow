@@ -147,8 +147,8 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
-  Status 2026-06-17: preparing `0.5.0` release candidate in `.worktrees/release-polish`; merged the latest `feature/task-detail-popover` task sidebar and Markdown detail editor into the release branch, preserved the release preview workflow, and updated `CHANGELOG.md`, `release-notes/0.5.0.md`, `manifest.json`, `package.json`, and `versions.json`.
-  Frank has authorized copying to Obsidian and uploading to GitHub if validation passes.
+  Status 2026-06-17: published `0.5.0` from `.worktrees/release-polish` to GitHub after the full release preview passed and copied to Obsidian. The release includes the latest `feature/task-detail-popover` task sidebar and Markdown detail editor, preserves the release preview workflow, and updates `CHANGELOG.md`, `release-notes/0.5.0.md`, `manifest.json`, `package.json`, and `versions.json`.
+  GitHub Release: `0.5.0`.
 
 ## Rules For Feature Sessions
 
