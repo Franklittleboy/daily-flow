@@ -30227,6 +30227,7 @@ var require_core = __commonJS({
       showCompletedTasks: false,
       taskListPaneWidth: 540,
       taskNavPaneWidth: 320,
+      collapsedTaskGroups: [],
       slashCommands: DEFAULT_SLASH_COMMANDS
     };
     function pad2(value) {
@@ -30323,6 +30324,7 @@ var require_core = __commonJS({
     function cloneSettings(settings) {
       return {
         ...settings,
+        collapsedTaskGroups: Array.isArray(settings?.collapsedTaskGroups) ? [...settings.collapsedTaskGroups] : [],
         slashCommands: normalizeSlashCommands(settings?.slashCommands)
       };
     }
@@ -30345,6 +30347,9 @@ var require_core = __commonJS({
       }
       if (Number.isFinite(settings.taskNavPaneWidth)) {
         next.taskNavPaneWidth = Math.min(420, Math.max(240, Math.round(settings.taskNavPaneWidth)));
+      }
+      if (Array.isArray(settings.collapsedTaskGroups)) {
+        next.collapsedTaskGroups = [...new Set(settings.collapsedTaskGroups.filter((key) => typeof key === "string" && key))];
       }
       if (Array.isArray(settings.slashCommands)) {
         next.slashCommands = normalizeSlashCommands(settings.slashCommands);
@@ -30504,7 +30509,8 @@ var require_core = __commonJS({
       return tasks.filter((task) => !task.completed);
     }
     function getTodayTasks(tasks, now = /* @__PURE__ */ new Date()) {
-      return sortTasks(incompleteTasks(tasks).filter((task) => isToday(task.dueDate, now)));
+      const today = formatLocalDate(now);
+      return sortTasks(incompleteTasks(tasks).filter((task) => task.dueDate && task.dueDate <= today));
     }
     function getNextDaysTasks(tasks, days, now = /* @__PURE__ */ new Date()) {
       return sortTasks(incompleteTasks(tasks).filter((task) => isWithinNextDays(task.dueDate, days, now)));
@@ -30739,16 +30745,19 @@ var DailyFlowView = class extends ItemView {
     const listScrollTop = this.taskListScrollPositions.get(this.taskFilter) || 0;
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
-      this.renderTaskGroup(listScroll, "Overdue", groups.overdue);
-      this.renderTaskGroup(listScroll, "Today", groups.today);
-      this.renderTaskGroup(listScroll, "Future", groups.future);
-      this.renderTaskGroup(listScroll, "No Date", groups.noDate);
+      this.renderTaskGroup(listScroll, "overdue", "\u5DF2\u8FC7\u671F", groups.overdue);
+      this.renderTaskGroup(listScroll, "today", "\u4ECA\u5929", groups.today);
+      this.renderTaskGroup(listScroll, "future", "\u672A\u6765", groups.future);
+      this.renderTaskGroup(listScroll, "noDate", "\u65E0\u65E5\u671F", groups.noDate);
+    } else if (this.taskFilter === "today") {
+      const groups = core.groupInboxTasks(this.plugin.data.tasks);
+      this.renderTaskGroup(listScroll, "overdue", "\u5DF2\u8FC7\u671F", groups.overdue);
+      this.renderTaskGroup(listScroll, "today", "\u4ECA\u5929", groups.today);
     } else {
-      const tasks = this.taskFilter === "today" ? core.getTodayTasks(this.plugin.data.tasks) : core.getNextDaysTasks(this.plugin.data.tasks, 7);
-      this.renderTaskGroup(listScroll, label, tasks);
+      this.renderTaskGroup(listScroll, "next7", label, core.getNextDaysTasks(this.plugin.data.tasks, 7));
     }
     if (this.plugin.data.settings.showCompletedTasks) {
-      this.renderTaskGroup(listScroll, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
+      this.renderTaskGroup(listScroll, "completed", "\u5DF2\u5B8C\u6210", this.plugin.data.tasks.filter((task) => task.completed));
     }
     list.appendChild(listScroll);
     board.appendChild(list);
@@ -30917,17 +30926,38 @@ var DailyFlowView = class extends ItemView {
     header.appendChild(actions);
     return header;
   }
-  renderTaskGroup(container, title, tasks) {
+  renderTaskGroup(container, key, title, tasks) {
     if (tasks.length === 0 && title !== "Inbox") {
       return;
     }
     const section = createEl("section", "daily-flow-task-group");
-    section.appendChild(createEl("h3", "", `${title} ${tasks.length}`));
-    if (tasks.length === 0) {
+    const groupId = `${this.taskFilter}:${key}`;
+    const collapsedTaskGroups = new Set(this.plugin.data.settings.collapsedTaskGroups);
+    const isCollapsed = collapsedTaskGroups.has(groupId);
+    const toggle = createEl("button", "daily-flow-task-group-toggle");
+    toggle.setAttribute("aria-expanded", String(!isCollapsed));
+    toggle.appendChild(createTickTickIcon(isCollapsed ? "chevron-right" : "chevron-down"));
+    toggle.appendChild(createEl("span", "daily-flow-task-group-title", title));
+    toggle.appendChild(createEl("span", "daily-flow-task-group-count", String(tasks.length)));
+    toggle.addEventListener("click", async () => {
+      if (isCollapsed) {
+        collapsedTaskGroups.delete(groupId);
+      } else {
+        collapsedTaskGroups.add(groupId);
+      }
+      await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+        collapsedTaskGroups: [...collapsedTaskGroups]
+      }));
+      this.render();
+    });
+    section.appendChild(toggle);
+    if (!isCollapsed && tasks.length === 0) {
       section.appendChild(createEl("p", "daily-flow-empty", "No tasks yet."));
     }
-    for (const task of tasks) {
-      section.appendChild(this.renderTaskRow(task));
+    if (!isCollapsed) {
+      for (const task of tasks) {
+        section.appendChild(this.renderTaskRow(task));
+      }
     }
     container.appendChild(section);
   }
@@ -30937,20 +30967,39 @@ var DailyFlowView = class extends ItemView {
       row.addClass("is-selected");
     }
     row.addEventListener("contextmenu", (event) => this.openTaskContextMenu(task, event));
-    const checkbox = createEl("input", "daily-flow-check");
-    checkbox.type = "checkbox";
-    checkbox.checked = task.completed;
-    checkbox.addEventListener("change", async () => {
-      await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
-      this.render();
-    });
+    let checkbox;
+    if (!task.completed && this.hasTaskChildContent(task)) {
+      checkbox = createEl("button", "daily-flow-check daily-flow-task-content-check");
+      checkbox.setAttribute("role", "checkbox");
+      checkbox.setAttribute("aria-checked", "false");
+      checkbox.setAttribute("aria-label", "\u5B8C\u6210\u4EFB\u52A1");
+      checkbox.appendChild(createTickTickIcon("file-text"));
+      checkbox.addEventListener("click", async () => {
+        await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, true));
+        this.render();
+      });
+    } else {
+      checkbox = createEl("input", "daily-flow-check");
+      checkbox.type = "checkbox";
+      checkbox.checked = task.completed;
+      checkbox.addEventListener("change", async () => {
+        await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
+        this.render();
+      });
+    }
     const body = createEl("button", "daily-flow-task-body");
     body.appendChild(createEl("span", "daily-flow-task-title", task.title));
     if (task.note) {
       body.setAttribute("title", task.note);
     }
     body.addEventListener("click", () => this.openTaskDetail(task));
+    const overdueDays = this.taskOverdueDays(task);
     const date = createEl("button", "daily-flow-task-date", this.taskDateLabel(task));
+    if (overdueDays) {
+      date.addClass("is-overdue");
+    } else if (core.isToday(task.dueDate)) {
+      date.addClass("is-today");
+    }
     date.addEventListener("click", () => this.openTaskDetail(task));
     const timer = createButton("\u25CE", "Focus on task", false);
     timer.addEventListener("click", () => {
@@ -31109,12 +31158,32 @@ var DailyFlowView = class extends ItemView {
   }
   taskDateLabel(task) {
     if (!task.dueDate) {
-      return "No date";
+      return "";
+    }
+    const overdueDays = this.taskOverdueDays(task);
+    if (overdueDays) {
+      return `\u8FC7\u671F ${overdueDays} \u5929`;
     }
     if (core.isToday(task.dueDate)) {
-      return "Today";
+      return "\u4ECA\u5929";
     }
     return task.dueDate.slice(5);
+  }
+  taskOverdueDays(task) {
+    if (!task.dueDate || task.completed) {
+      return 0;
+    }
+    const due = core.parseLocalDate(task.dueDate);
+    const today = core.parseLocalDate(core.formatLocalDate(/* @__PURE__ */ new Date()));
+    if (!due || !today || due >= today) {
+      return 0;
+    }
+    return Math.max(1, Math.round((today.getTime() - due.getTime()) / 864e5));
+  }
+  hasTaskChildContent(task) {
+    return Boolean(
+      task.note?.trim() || task.attachments?.length || task.subtasks?.length
+    );
   }
   renderCalendar(main) {
     const title = this.calendarMode === "month" ? `${this.anchorDate.getFullYear()}-${String(this.anchorDate.getMonth() + 1).padStart(2, "0")}` : "Week View";

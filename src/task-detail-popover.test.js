@@ -91,3 +91,22 @@ test("task list scroll position survives task detail rerenders", () => {
   assert.match(source, /main\.appendChild\(board\);\s*listScroll\.scrollTop = listScrollTop/s);
   assert.match(source, /this\.taskListScrollPositions\.set\(filter, listScroll\.scrollTop\)/);
 });
+
+test("task groups are collapsible and persist their state", () => {
+  assert.match(source, /renderTaskGroup\(container, key, title, tasks\)/);
+  assert.match(source, /daily-flow-task-group-toggle/);
+  assert.match(source, /collapsedTaskGroups/);
+  assert.match(source, /core\.updateSettings\(this\.plugin\.data, \{\s*collapsedTaskGroups:/s);
+  assert.match(styles, /\.daily-flow-task-group-toggle\s*\{/);
+});
+
+test("task rows match TickTick content and overdue indicators", () => {
+  assert.match(source, /hasTaskChildContent\(task\)/);
+  assert.match(source, /daily-flow-task-content-check/);
+  assert.match(source, /taskOverdueDays\(task\)/);
+  assert.match(source, /`过期 \$\{overdueDays\} 天`/);
+  assert.match(source, /date\.addClass\("is-overdue"\)/);
+  assert.match(styles, /\.daily-flow-task-content-check\s*\{/);
+  assert.match(styles, /\.daily-flow-task-date\.is-overdue\s*\{[^}]*color:\s*#ef4444/s);
+  assert.match(styles, /\.daily-flow-task-row\s*\{[^}]*align-items:\s*center/s);
+});

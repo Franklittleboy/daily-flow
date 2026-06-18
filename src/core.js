@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS = {
   showCompletedTasks: false,
   taskListPaneWidth: 540,
   taskNavPaneWidth: 320,
+  collapsedTaskGroups: [],
   slashCommands: DEFAULT_SLASH_COMMANDS
 };
 
@@ -123,6 +124,7 @@ function normalizeSlashCommands(commands) {
 function cloneSettings(settings) {
   return {
     ...settings,
+    collapsedTaskGroups: Array.isArray(settings?.collapsedTaskGroups) ? [...settings.collapsedTaskGroups] : [],
     slashCommands: normalizeSlashCommands(settings?.slashCommands)
   };
 }
@@ -146,6 +148,9 @@ function normalizeSettings(settings) {
   }
   if (Number.isFinite(settings.taskNavPaneWidth)) {
     next.taskNavPaneWidth = Math.min(420, Math.max(240, Math.round(settings.taskNavPaneWidth)));
+  }
+  if (Array.isArray(settings.collapsedTaskGroups)) {
+    next.collapsedTaskGroups = [...new Set(settings.collapsedTaskGroups.filter((key) => typeof key === "string" && key))];
   }
   if (Array.isArray(settings.slashCommands)) {
     next.slashCommands = normalizeSlashCommands(settings.slashCommands);
@@ -326,7 +331,8 @@ function incompleteTasks(tasks) {
 }
 
 function getTodayTasks(tasks, now = new Date()) {
-  return sortTasks(incompleteTasks(tasks).filter((task) => isToday(task.dueDate, now)));
+  const today = formatLocalDate(now);
+  return sortTasks(incompleteTasks(tasks).filter((task) => task.dueDate && task.dueDate <= today));
 }
 
 function getNextDaysTasks(tasks, days, now = new Date()) {
