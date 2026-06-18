@@ -48,7 +48,7 @@ test("task markdown lists support indentation and collapsible nested items", () 
   assert.match(source, /daily-flow-cm-fold-toggle/);
   assert.match(source, /daily-flow-cm-folded-line/);
   assert.match(styles, /\.daily-flow-cm-fold-toggle\s*{/);
-  assert.match(styles, /\.daily-flow-cm-folded-line\s*{[^}]*display:\s*none/s);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-line\.daily-flow-cm-folded-line\s*{[^}]*display:\s*none !important/s);
 });
 
 test("nested markdown items show TickTick-like depth guides and keep the parent visible", () => {
@@ -61,6 +61,11 @@ test("nested markdown items show TickTick-like depth guides and keep the parent 
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-line\.daily-flow-cm-list-line\s*{[^}]*padding-left:\s*calc\(var\(--daily-flow-list-depth\) \* 1em\)/s);
   assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*border-left:/s);
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-content\s*{[^}]*padding-left:\s*24px/s);
+  assert.match(styles, /\.daily-flow-cm-fold-toggle\s*{[^}]*opacity:\s*0/s);
+  assert.match(styles, /\.daily-flow-cm-fold-toggle\s*{[^}]*pointer-events:\s*none/s);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-line:hover \.daily-flow-cm-fold-toggle\s*{[^}]*opacity:\s*1/s);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-line:hover \.daily-flow-cm-fold-toggle\s*{[^}]*pointer-events:\s*auto/s);
+  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*bottom:\s*calc\(50% \+ 7px\)/s);
 });
 
 test("task list scroll position survives task detail rerenders", () => {

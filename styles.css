@@ -1061,8 +1061,8 @@
 .daily-flow-cm-list-line.is-nested::before {
   content: "";
   position: absolute;
-  top: -12px;
-  bottom: -12px;
+  top: -6px;
+  bottom: calc(50% + 7px);
   left: calc((var(--daily-flow-list-depth) - 0.5) * 1em);
   border-left: 1px solid var(--daily-flow-line-strong);
   pointer-events: none;
@@ -1099,9 +1099,22 @@
   border: 0;
   border-radius: 4px;
   padding: 0;
-  color: var(--daily-flow-accent);
+  color: var(--text-muted);
   background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease;
   vertical-align: -3px;
+}
+
+.daily-flow-detail-md-body .cm-line:hover .daily-flow-cm-fold-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.daily-flow-detail-md-body .cm-line:focus-within .daily-flow-cm-fold-toggle {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .daily-flow-cm-fold-toggle:hover {
@@ -1114,8 +1127,8 @@
   height: 14px;
 }
 
-.daily-flow-cm-folded-line {
-  display: none;
+.daily-flow-detail-md-body .cm-line.daily-flow-cm-folded-line {
+  display: none !important;
 }
 
 .daily-flow-cm-divider {
