@@ -1038,6 +1038,8 @@
 }
 
 .daily-flow-detail-md-body .cm-content {
+  --daily-flow-list-marker-size: 16px;
+  --daily-flow-list-marker-center: calc(var(--daily-flow-list-marker-size) / 2);
   min-height: min(520px, calc(100vh - 260px));
   padding: 0;
   padding-left: 24px;
@@ -1061,10 +1063,19 @@
 .daily-flow-cm-list-line.is-nested::before {
   content: "";
   position: absolute;
-  top: -6px;
-  bottom: calc(50% + 7px);
-  left: calc((var(--daily-flow-list-depth) - 0.5) * 1em);
-  border-left: 1px solid var(--daily-flow-line-strong);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--daily-flow-list-depth) * 1em);
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--daily-flow-list-marker-center) - 0.5px),
+    var(--daily-flow-line-strong) calc(var(--daily-flow-list-marker-center) - 0.5px),
+    var(--daily-flow-line-strong) calc(var(--daily-flow-list-marker-center) + 0.5px),
+    transparent calc(var(--daily-flow-list-marker-center) + 0.5px),
+    transparent 1em
+  );
   pointer-events: none;
 }
 
@@ -1085,7 +1096,7 @@
   display: inline-block;
   width: 5px;
   height: 5px;
-  margin: 0 14px 3px 5px;
+  margin: 0 13.5px 3px 5.5px;
   border-radius: 50%;
   background: var(--text-normal);
 }
@@ -1125,6 +1136,15 @@
 .daily-flow-cm-fold-toggle .daily-flow-ticktick-icon svg {
   width: 14px;
   height: 14px;
+}
+
+.daily-flow-cm-fold-summary {
+  display: inline-block;
+  margin-left: 1em;
+  color: var(--text-faint);
+  letter-spacing: 2px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .daily-flow-detail-md-body .cm-line.daily-flow-cm-folded-line {

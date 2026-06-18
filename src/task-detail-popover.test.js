@@ -51,6 +51,17 @@ test("task markdown lists support indentation and collapsible nested items", () 
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-line\.daily-flow-cm-folded-line\s*{[^}]*display:\s*none !important/s);
 });
 
+test("only the item that hides descendants shows a spaced collapsed summary", () => {
+  assert.match(source, /class ListFoldSummaryWidget extends WidgetType/);
+  assert.match(source, /summary\.className = "daily-flow-cm-fold-summary"/);
+  assert.match(source, /summary\.textContent = "\.\.\."/);
+  assert.match(
+    source,
+    /if \(!isCollapsed\)\s*{\s*continue;\s*}\s*ranges\.push\(Decoration\.widget\({\s*widget: new ListFoldSummaryWidget\(\),\s*side: 1\s*}\)\.range\(line\.to\)\)/s
+  );
+  assert.match(styles, /\.daily-flow-cm-fold-summary\s*{[^}]*margin-left:\s*1em/s);
+});
+
 test("nested markdown items show TickTick-like depth guides and keep the parent visible", () => {
   assert.match(source, /getMarkdownListDepth\(indent\)/);
   assert.match(source, /daily-flow-cm-list-line/);
@@ -59,13 +70,17 @@ test("nested markdown items show TickTick-like depth guides and keep the parent 
   assert.match(source, /"chevron-down":\s*'<svg/);
   assert.match(source, /"chevron-right":\s*'<svg/);
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-line\.daily-flow-cm-list-line\s*{[^}]*padding-left:\s*calc\(var\(--daily-flow-list-depth\) \* 1em\)/s);
-  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*border-left:/s);
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-content\s*{[^}]*padding-left:\s*24px/s);
   assert.match(styles, /\.daily-flow-cm-fold-toggle\s*{[^}]*opacity:\s*0/s);
   assert.match(styles, /\.daily-flow-cm-fold-toggle\s*{[^}]*pointer-events:\s*none/s);
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-line:hover \.daily-flow-cm-fold-toggle\s*{[^}]*opacity:\s*1/s);
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-line:hover \.daily-flow-cm-fold-toggle\s*{[^}]*pointer-events:\s*auto/s);
-  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*bottom:\s*calc\(50% \+ 7px\)/s);
+  assert.match(styles, /--daily-flow-list-marker-size:\s*16px/);
+  assert.match(styles, /--daily-flow-list-marker-center:\s*calc\(var\(--daily-flow-list-marker-size\) \/ 2\)/);
+  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*top:\s*0[^}]*bottom:\s*0/s);
+  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*width:\s*calc\(var\(--daily-flow-list-depth\) \* 1em\)/s);
+  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*repeating-linear-gradient\([^}]*var\(--daily-flow-list-marker-center\)[^}]*var\(--daily-flow-line-strong\)/s);
+  assert.match(styles, /\.daily-flow-cm-bullet\s*{[^}]*margin:\s*0 13\.5px 3px 5\.5px/s);
 });
 
 test("task list scroll position survives task detail rerenders", () => {

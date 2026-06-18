@@ -32337,6 +32337,10 @@ function createListFoldState(state, collapsed) {
     if (!isCollapsed) {
       continue;
     }
+    ranges.push(Decoration.widget({
+      widget: new ListFoldSummaryWidget(),
+      side: 1
+    }).range(line.to));
     for (let childNumber = lineNumber + 1; childNumber <= state.doc.lines; childNumber += 1) {
       const childLine = state.doc.line(childNumber);
       const child = parseMarkdownListItem(childLine.text);
@@ -32381,6 +32385,14 @@ var ListFoldWidget = class extends WidgetType {
   }
   ignoreEvent() {
     return false;
+  }
+};
+var ListFoldSummaryWidget = class extends WidgetType {
+  toDOM() {
+    const summary = document.createElement("span");
+    summary.className = "daily-flow-cm-fold-summary";
+    summary.textContent = "...";
+    return summary;
   }
 };
 function buildDailyFlowMarkdownDecorations(view) {
