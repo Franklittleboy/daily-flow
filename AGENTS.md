@@ -26,6 +26,16 @@ DailyFlow 是一个面向 Obsidian 的本地任务、日历和番茄专注插件
 - 预览只包含已提交内容；如果任何被纳入预览的 worktree 还有未提交修改，先询问用户要提交、暂存还是暂不纳入，不要默默混入。
 - 在用户明确说“可以提交/发布”之前，不要推送 GitHub，不要创建 GitHub Release，不要打新 tag。
 
+## 多会话集成契约
+
+- 普通功能分支分别维护自己的验收测试：`focus-page.test.js`、`calendar-views.test.js`、`task-detail-popover.test.js`、`mobile-layout.test.js`。
+- `release-polish` 维护 `release-integration.test.js`，用于保护跨功能组合后的最终行为。
+- 普通功能会话不要合并兄弟功能分支，也不要用整文件覆盖方式决定其他功能的取舍；跨功能修改应在交接中明确标记。
+- 功能交付时记录四项：分支、最新提交、专属测试文件、修改过的共享生产文件。
+- 发布后、下一轮功能开发前，使用 `scripts/sync-feature-base.mjs --all --verify` 将所有普通功能分支同步到最新发布 tag。
+- 完整 release 预览必须验证各分支专属测试仍在，并报告多个分支共同修改的生产文件。缺少契约、分支落后发布基线或 worktree 不干净时，不得复制到 Obsidian。
+- 要推送最终集成版本时，先把已验证的 `preview/local-obsidian` 结果纳入 `feature/release-polish`，在该分支重新验证，再推送；不要直接推送临时预览分支。
+
 ## 编码行为
 
 - 修改前先简要说明目标、关键假设、可能修改的文件、验证方式。

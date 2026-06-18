@@ -3,10 +3,19 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  extractTestNames,
+  findMissingContracts,
+  findOverlappingFiles,
+  findUnsyncedBranches,
+  formatMissingContracts,
+  formatOverlapReport,
+} from "./preview-guard.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const nodePath = process.execPath;
@@ -22,6 +31,12 @@ const featureBranches = [
   "feature/task-detail-popover",
   "feature/mobile-layout",
 ];
+const featureContracts = new Map([
+  ["feature/focus-page", "src/focus-page.test.js"],
+  ["feature/calendar-views", "src/calendar-views.test.js"],
+  ["feature/task-detail-popover", "src/task-detail-popover.test.js"],
+  ["feature/mobile-layout", "src/mobile-layout.test.js"],
+]);
 
 const rawArgs = process.argv.slice(2);
 const args = new Set(rawArgs);
@@ -45,9 +60,17 @@ function main() {
     }
   }
 
+  const releaseGuard = plan.releaseGuard
+    ? prepareReleaseGuard(plan)
+    : null;
+
   ensurePreviewWorktree(plan.baseRef);
   resetPreviewToBase(plan.baseRef);
   mergeFeatureBranches(plan.branches);
+  if (releaseGuard) {
+    verifyReleaseContracts(releaseGuard.contractsByBranch);
+    console.log(`\n${formatOverlapReport(releaseGuard.overlaps)}`);
+  }
   if (plan.fullVerification) {
     verifyPreviewBuild();
   } else {
@@ -80,6 +103,7 @@ function getPreviewPlan() {
       baseRef,
       branches: readBranchesOrDefault(featureBranches),
       fullVerification: true,
+      releaseGuard: true,
     };
   }
 
@@ -89,6 +113,7 @@ function getPreviewPlan() {
       baseRef,
       branches: readBranchesOrDefault(featureBranches),
       fullVerification: true,
+      releaseGuard: true,
     };
   }
 
@@ -98,6 +123,7 @@ function getPreviewPlan() {
       baseRef,
       branches: [requestedBranch],
       fullVerification: forceFullVerification,
+      releaseGuard: false,
     };
   }
 
@@ -107,6 +133,7 @@ function getPreviewPlan() {
       baseRef,
       branches: readBranchesOrDefault([]),
       fullVerification: forceFullVerification,
+      releaseGuard: false,
     };
   }
 
@@ -117,6 +144,7 @@ function getPreviewPlan() {
       baseRef,
       branches: featureBranches,
       fullVerification: true,
+      releaseGuard: true,
     };
   }
 
@@ -126,6 +154,7 @@ function getPreviewPlan() {
       baseRef,
       branches: [currentBranch],
       fullVerification: forceFullVerification,
+      releaseGuard: false,
     };
   }
 
@@ -169,6 +198,69 @@ function mergeFeatureBranches(branches) {
   for (const branch of branches) {
     run("git", ["merge", "--no-edit", branch], previewPath);
   }
+}
+
+function prepareReleaseGuard(plan) {
+  const latestTag = getLatestVersionTag();
+  const unsynced = findUnsyncedBranches(
+    plan.branches,
+    (branch) => isAncestor(latestTag, branch),
+  );
+  if (unsynced.length) {
+    fail([
+      `Release preview requires every feature branch to contain ${latestTag}.`,
+      ...unsynced.flatMap((branch) => [
+        "",
+        `${branch} is not synchronized.`,
+        `${nodePath} scripts/sync-feature-base.mjs --branch=${branch} --verify`,
+      ]),
+    ].join("\n"));
+  }
+
+  const contractsByBranch = new Map();
+  const filesByBranch = new Map();
+  console.log("\nRelease preview inputs:");
+  console.log(`Latest tag: ${latestTag} @ ${shortRef(latestTag)}`);
+  console.log(`Base: ${plan.baseRef} @ ${shortRef(plan.baseRef)}`);
+
+  for (const branch of plan.branches) {
+    const contractFile = featureContracts.get(branch);
+    if (!contractFile) {
+      fail(`No feature contract file is configured for ${branch}.`);
+    }
+    const contractSource = readRefFile(branch, contractFile);
+    const testNames = extractTestNames(contractSource);
+    if (!testNames.length) {
+      fail(`${branch} has no named tests in ${contractFile}.`);
+    }
+    contractsByBranch.set(branch, testNames);
+    filesByBranch.set(branch, changedFiles(latestTag, branch));
+    console.log(`${branch} @ ${shortRef(branch)} (${testNames.length} contracts)`);
+  }
+
+  return {
+    contractsByBranch,
+    overlaps: findOverlappingFiles(filesByBranch),
+  };
+}
+
+function verifyReleaseContracts(contractsByBranch) {
+  const mergedNames = new Set();
+  for (const file of readdirSync(join(previewPath, "src"))) {
+    if (!file.endsWith(".test.js")) continue;
+    const source = readFileSync(join(previewPath, "src", file), "utf8");
+    for (const testName of extractTestNames(source)) {
+      mergedNames.add(testName);
+    }
+  }
+
+  const missing = findMissingContracts(contractsByBranch, mergedNames);
+  if (missing.length) {
+    fail(formatMissingContracts(missing));
+  }
+  const contractCount = [...contractsByBranch.values()]
+    .reduce((sum, names) => sum + names.length, 0);
+  console.log(`\nFeature contracts verified: ${contractCount}`);
 }
 
 function verifyPreviewBuild() {
@@ -262,6 +354,46 @@ function branchExists(branch) {
   } catch {
     return false;
   }
+}
+
+function getLatestVersionTag() {
+  const tags = output("git", ["tag", "--list", "--sort=-version:refname"])
+    .split("\n")
+    .map((tag) => tag.trim())
+    .filter((tag) => /^v?\d+\.\d+\.\d+$/.test(tag));
+  if (!tags.length) {
+    fail("No version tags were found for release preview validation.");
+  }
+  return tags[0];
+}
+
+function isAncestor(ancestor, descendant) {
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function shortRef(ref) {
+  return output("git", ["rev-parse", "--short", ref]);
+}
+
+function readRefFile(ref, file) {
+  try {
+    return output("git", ["show", `${ref}:${file}`]);
+  } catch {
+    fail(`${ref} is missing its feature contract file: ${file}`);
+  }
+}
+
+function changedFiles(baseRef, branch) {
+  const changed = output("git", ["diff", "--name-only", `${baseRef}..${branch}`]);
+  return changed ? changed.split("\n").filter(Boolean) : [];
 }
 
 function readOption(name) {

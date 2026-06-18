@@ -8,12 +8,13 @@ This section overrides any older preview wording later in this file.
 - Normal feature branches: only use `scripts/refresh-preview.mjs --branch=<current feature branch> --copy` if Frank explicitly says `集成预览`, `和 release-polish 合起来看`, or `完整验证`. Add `--full` only when full tests are requested.
 - Release polish: if Frank says `复制到 Obsidian 看整体效果`, `发布前预览`, or asks to publish, use `scripts/refresh-preview.mjs --release --copy` and keep the full validation flow.
 - If any included worktree has uncommitted changes during an integration or release preview, stop and ask Frank whether to commit, stash, or leave those changes out.
+- Release previews also require every included feature branch to contain the latest release tag and preserve its owned acceptance tests. Missing contracts or an unsynchronized base stop the preview before copying.
 
 ## Current Baseline
 
 - Project: DailyFlow Obsidian plugin.
 - Current local release version: `0.5.0`.
-- Baseline branch to use for parallel feature work: `draft/0.1.10-base`.
+- Current published baseline for parallel feature work: tag `0.5.0`.
 - Do not push to GitHub or create a GitHub Release until Frank explicitly says the feature batch is finished.
 - Local Obsidian plugin directory:
   `/Users/frank/Library/CloudStorage/OneDrive-个人/5 others/ob/.obsidian/plugins/daily-flow/`
@@ -68,6 +69,38 @@ Use these isolated worktrees for new sessions:
 | Release polish | `feature/release-polish` | `.worktrees/release-polish` |
 
 Each feature session should work only in its assigned worktree.
+
+## Multi-Session Integration Contracts
+
+Each normal feature branch owns one acceptance test file:
+
+| Branch | Acceptance test |
+| --- | --- |
+| `feature/focus-page` | `src/focus-page.test.js` |
+| `feature/calendar-views` | `src/calendar-views.test.js` |
+| `feature/task-detail-popover` | `src/task-detail-popover.test.js` |
+| `feature/mobile-layout` | `src/mobile-layout.test.js` |
+
+`feature/release-polish` owns `src/release-integration.test.js` for behavior that must survive the final combination.
+
+Normal feature sessions do not merge sibling feature branches and do not resolve cross-feature overlap by choosing a whole file. When handing a feature to release-polish, record:
+
+```text
+Branch: feature/focus-page
+Commit: <latest commit>
+Acceptance test: src/focus-page.test.js
+Shared production files: src/obsidian-plugin.js, styles.css
+```
+
+After publishing a version and before starting the next feature cycle, synchronize all normal feature branches:
+
+```bash
+/Users/frank/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/sync-feature-base.mjs --all --verify
+```
+
+The release preview prints exact branch commits, verifies the acceptance-test union, and reports production files changed by multiple feature branches. A missing contract, old feature base, dirty included worktree, failed test, syntax error, or failed build stops the run before Obsidian is overwritten.
+
+If the tested integrated result must be pushed to GitHub, first incorporate `preview/local-obsidian` into `feature/release-polish`, verify that branch again, and push `feature/release-polish`. Do not push the disposable preview branch.
 
 ## Combined Local Preview
 
