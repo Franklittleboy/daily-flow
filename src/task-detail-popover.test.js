@@ -56,7 +56,9 @@ test("nested markdown items show TickTick-like depth guides and keep the parent 
   assert.match(source, /daily-flow-cm-list-line/);
   assert.match(source, /--daily-flow-list-depth/);
   assert.match(source, /childLine\.from/);
-  assert.match(styles, /\.daily-flow-cm-list-line\s*{[^}]*padding-left:\s*calc\(var\(--daily-flow-list-depth\) \* 1em\)/s);
+  assert.match(source, /"chevron-down":\s*'<svg/);
+  assert.match(source, /"chevron-right":\s*'<svg/);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-line\.daily-flow-cm-list-line\s*{[^}]*padding-left:\s*calc\(var\(--daily-flow-list-depth\) \* 1em\)/s);
   assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*border-left:/s);
   assert.match(styles, /\.daily-flow-detail-md-body \.cm-content\s*{[^}]*padding-left:\s*24px/s);
 });
@@ -65,6 +67,7 @@ test("task list scroll position survives task detail rerenders", () => {
   assert.match(source, /this\.taskListScrollPositions = new Map\(\)/);
   assert.match(source, /this\.rememberTaskListScrollPosition\(\)/);
   assert.match(source, /listScroll\.dataset\.filter = this\.taskFilter/);
-  assert.match(source, /listScroll\.scrollTop = this\.taskListScrollPositions\.get\(this\.taskFilter\) \|\| 0/);
+  assert.match(source, /const listScrollTop = this\.taskListScrollPositions\.get\(this\.taskFilter\) \|\| 0/);
+  assert.match(source, /main\.appendChild\(board\);\s*listScroll\.scrollTop = listScrollTop/s);
   assert.match(source, /this\.taskListScrollPositions\.set\(filter, listScroll\.scrollTop\)/);
 });

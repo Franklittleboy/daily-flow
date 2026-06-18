@@ -30736,7 +30736,7 @@ var DailyFlowView = class extends ItemView {
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
     const listScroll = createEl("div", "daily-flow-task-list-scroll");
     listScroll.dataset.filter = this.taskFilter;
-    listScroll.scrollTop = this.taskListScrollPositions.get(this.taskFilter) || 0;
+    const listScrollTop = this.taskListScrollPositions.get(this.taskFilter) || 0;
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
       this.renderTaskGroup(listScroll, "Overdue", groups.overdue);
@@ -30757,6 +30757,7 @@ var DailyFlowView = class extends ItemView {
     board.appendChild(detailResizer);
     this.renderTaskDetail(board, "panel");
     main.appendChild(board);
+    listScroll.scrollTop = listScrollTop;
   }
   rememberTaskListScrollPosition() {
     const listScroll = this.containerEl.querySelector(".daily-flow-task-list-scroll");
@@ -32158,7 +32159,9 @@ var TICKTICK_ICONS = {
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15V6a1 1 0 0 1 1-1h9"></path></svg>',
   link: '<svg viewBox="0 0 24 24"><path d="M9.5 14.5 14.5 9.5"></path><path d="M8 11a4 4 0 0 1 0-6l1-1a4 4 0 0 1 6 6l-1 1"></path><path d="M10 13l-1 1a4 4 0 0 0 6 6l1-1a4 4 0 0 0 0-6"></path></svg>',
   "sticky-note": '<svg viewBox="0 0 24 24"><path d="M6 4h12v11l-5 5H6z"></path><path d="M13 20v-5h5"></path></svg>',
-  "file-text": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path></svg>'
+  "file-text": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path></svg>',
+  "chevron-down": '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>',
+  "chevron-right": '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg>'
 };
 function createTickTickIcon(name) {
   const icon = createEl("span", "daily-flow-ticktick-icon");

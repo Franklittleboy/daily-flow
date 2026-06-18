@@ -1054,7 +1054,7 @@
   min-height: 24px;
 }
 
-.daily-flow-cm-list-line {
+.daily-flow-detail-md-body .cm-line.daily-flow-cm-list-line {
   padding-left: calc(var(--daily-flow-list-depth) * 1em);
 }
 
