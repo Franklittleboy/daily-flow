@@ -180,6 +180,7 @@ Use this as the first message in a new Codex session:
 - Mobile layout:
   Make DailyFlow usable on Obsidian mobile, including navigation, task lists, calendar, and focus page.
 - Release polish:
+  Status 2026-06-18: the verified integrated tree was fast-forwarded into `feature/release-polish` at `9dcbc6e` and pushed to GitHub. The guarded release preview recorded exact branch tips, verified all four feature contracts, reported shared production files, passed 47 tests plus syntax/build checks, and copied matching artifacts to Obsidian. No tag was moved and no new GitHub Release was created.
   Status 2026-06-17: published `0.5.0` from `.worktrees/release-polish` to GitHub after the full release preview passed and copied to Obsidian. The release includes the latest `feature/task-detail-popover` task sidebar and Markdown detail editor, preserves the release preview workflow, and updates `CHANGELOG.md`, `release-notes/0.5.0.md`, `manifest.json`, `package.json`, and `versions.json`.
   GitHub Release: `0.5.0`.
 
