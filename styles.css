@@ -164,9 +164,14 @@
   padding: 22px 30px;
 }
 
+.daily-flow-main.is-tasks {
+  overflow: hidden;
+}
+
 .daily-flow-task-board {
   display: grid;
   grid-template-columns: var(--daily-flow-task-nav-width, 320px) 6px var(--daily-flow-task-list-width, 540px) 6px minmax(0, 1fr);
+  height: 100%;
   min-height: 100%;
   overflow: hidden;
 }
@@ -176,7 +181,7 @@
   flex-direction: column;
   min-width: 0;
   padding: 22px 14px;
-  overflow: hidden auto;
+  overflow: hidden;
   border-right: 0;
 }
 
@@ -243,8 +248,23 @@
 }
 
 .daily-flow-task-list-pane {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  padding: 22px 30px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.daily-flow-task-list-pane > .daily-flow-header {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 22px 30px 18px;
+}
+
+.daily-flow-task-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 30px 22px;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -934,16 +954,19 @@
 
 .daily-flow-detail-content {
   flex: 1 1 auto;
-  overflow: auto;
-  padding: 28px 40px 20px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 40px 20px;
 }
 
 .daily-flow-detail-title-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
+  flex: 0 0 auto;
   gap: 0;
-  margin-bottom: 22px;
+  padding: 28px 40px 22px;
 }
 
 .daily-flow-root .daily-flow-detail-title {
@@ -995,7 +1018,7 @@
   padding: 0;
   color: var(--text-normal);
   background: transparent;
-  overflow: auto;
+  overflow: visible;
 }
 
 .daily-flow-detail-md-body .cm-editor {
@@ -1049,6 +1072,34 @@
   margin: 0 14px 3px 5px;
   border-radius: 50%;
   background: var(--text-normal);
+}
+
+.daily-flow-cm-fold-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0 4px 0 -22px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  vertical-align: -3px;
+}
+
+.daily-flow-cm-fold-toggle:hover {
+  background: var(--daily-flow-soft);
+}
+
+.daily-flow-cm-fold-toggle .daily-flow-ticktick-icon,
+.daily-flow-cm-fold-toggle .daily-flow-ticktick-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.daily-flow-cm-folded-line {
+  display: none;
 }
 
 .daily-flow-cm-divider {
@@ -1200,6 +1251,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
   gap: 12px;
   min-height: 54px;
   margin-top: auto;

@@ -1,7 +1,7 @@
 const { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("obsidian");
-const { history, historyKeymap, defaultKeymap } = require("@codemirror/commands");
+const { history, historyKeymap, defaultKeymap, indentWithTab } = require("@codemirror/commands");
 const { markdown } = require("@codemirror/lang-markdown");
-const { EditorState, RangeSetBuilder } = require("@codemirror/state");
+const { EditorState, RangeSetBuilder, StateEffect, StateField } = require("@codemirror/state");
 const { Decoration, EditorView, ViewPlugin, WidgetType, keymap } = require("@codemirror/view");
 const core = require("./core");
 
@@ -114,12 +114,9 @@ class DailyFlowView extends ItemView {
 
     const main = createEl("main", "daily-flow-main");
     main.addClass(`is-${this.section}`);
-    main.addEventListener("click", () => {
-      if (this.contextMenuTaskId) {
-        this.contextMenuTaskId = null;
-        this.contextMenuPosition = null;
-        this.render();
-      }
+    main.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      this.dismissTaskMenusForTarget(target);
     });
     shell.appendChild(main);
 
@@ -191,23 +188,25 @@ class DailyFlowView extends ItemView {
 
     const list = createEl("div", "daily-flow-task-list-pane");
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
+    const listScroll = createEl("div", "daily-flow-task-list-scroll");
 
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
-      this.renderTaskGroup(list, "Overdue", groups.overdue);
-      this.renderTaskGroup(list, "Today", groups.today);
-      this.renderTaskGroup(list, "Future", groups.future);
-      this.renderTaskGroup(list, "No Date", groups.noDate);
+      this.renderTaskGroup(listScroll, "Overdue", groups.overdue);
+      this.renderTaskGroup(listScroll, "Today", groups.today);
+      this.renderTaskGroup(listScroll, "Future", groups.future);
+      this.renderTaskGroup(listScroll, "No Date", groups.noDate);
     } else {
       const tasks = this.taskFilter === "today"
         ? core.getTodayTasks(this.plugin.data.tasks)
         : core.getNextDaysTasks(this.plugin.data.tasks, 7);
-      this.renderTaskGroup(list, label, tasks);
+      this.renderTaskGroup(listScroll, label, tasks);
     }
 
     if (this.plugin.data.settings.showCompletedTasks) {
-      this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
+      this.renderTaskGroup(listScroll, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
+    list.appendChild(listScroll);
     board.appendChild(list);
     const detailResizer = createEl("div", "daily-flow-task-resizer");
     this.bindTaskListResizer(board, detailResizer);
@@ -537,6 +536,29 @@ class DailyFlowView extends ItemView {
 
     container.appendChild(menu);
     this.positionTaskContextMenu(menu);
+  }
+
+  dismissTaskMenusForTarget(target) {
+    if (!target) {
+      return false;
+    }
+    let dismissed = false;
+    if (this.contextMenuTaskId && !target.closest(".daily-flow-task-context-menu")) {
+      this.contextMenuTaskId = null;
+      this.contextMenuPosition = null;
+      this.containerEl.querySelector(".daily-flow-task-context-menu")?.remove();
+      dismissed = true;
+    }
+    if (
+      this.detailMenuOpen &&
+      !target.closest(".daily-flow-detail-menu") &&
+      !target.closest(".daily-flow-detail-more")
+    ) {
+      this.detailMenuOpen = false;
+      this.containerEl.querySelector(".daily-flow-detail-menu")?.remove();
+      dismissed = true;
+    }
+    return dismissed;
   }
 
   positionTaskContextMenu(menu) {
@@ -1031,7 +1053,9 @@ class DailyFlowView extends ItemView {
       ) {
         this.detailDatePickerOpen = false;
         this.render();
+        return;
       }
+      this.dismissTaskMenusForTarget(target);
     });
 
     const header = createEl("div", "daily-flow-detail-header");
@@ -1054,7 +1078,7 @@ class DailyFlowView extends ItemView {
       date.addClass("is-overdue");
     }
     date.addEventListener("click", (event) => {
-      event.stopPropagation();
+      this.dismissTaskMenusForTarget(event.target instanceof Element ? event.target : null);
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
       this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || new Date();
@@ -1068,7 +1092,6 @@ class DailyFlowView extends ItemView {
       card.appendChild(this.renderDetailDatePicker(task));
     }
 
-    const content = createEl("div", "daily-flow-detail-content");
     const titleRow = createEl("div", "daily-flow-detail-title-row");
     const title = createEl("input", "daily-flow-detail-title");
     title.type = "text";
@@ -1093,8 +1116,9 @@ class DailyFlowView extends ItemView {
       }
     });
     titleRow.appendChild(title);
-    content.appendChild(titleRow);
+    card.appendChild(titleRow);
 
+    const content = createEl("div", "daily-flow-detail-content");
     content.appendChild(this.renderTaskMarkdownBody(task));
 
     content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
@@ -1854,7 +1878,8 @@ function createDailyFlowMarkdownEditor(parent, markdownText, options) {
       extensions: [
         history(),
         markdown(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+        dailyFlowListFolding(),
         dailyFlowMarkdownPreview(),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -1889,6 +1914,111 @@ function dailyFlowMarkdownPreview() {
   }, {
     decorations: (plugin) => plugin.decorations
   });
+}
+
+const toggleListFoldEffect = StateEffect.define();
+
+const listFoldState = StateField.define({
+  create(state) {
+    return createListFoldState(state, new Set());
+  },
+  update(value, transaction) {
+    const collapsed = new Set();
+    for (const position of value.collapsed) {
+      collapsed.add(transaction.changes.mapPos(position));
+    }
+    for (const effect of transaction.effects) {
+      if (!effect.is(toggleListFoldEffect)) {
+        continue;
+      }
+      if (collapsed.has(effect.value)) {
+        collapsed.delete(effect.value);
+      } else {
+        collapsed.add(effect.value);
+      }
+    }
+    return createListFoldState(transaction.state, collapsed);
+  },
+  provide(field) {
+    return EditorView.decorations.from(field, (value) => value.decorations);
+  }
+});
+
+function dailyFlowListFolding() {
+  return listFoldState;
+}
+
+function createListFoldState(state, collapsed) {
+  const ranges = [];
+  for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber += 1) {
+    const line = state.doc.line(lineNumber);
+    const item = parseMarkdownListItem(line.text);
+    const next = lineNumber < state.doc.lines
+      ? parseMarkdownListItem(state.doc.line(lineNumber + 1).text)
+      : null;
+    if (!item || !next || next.indent <= item.indent) {
+      continue;
+    }
+
+    const isCollapsed = collapsed.has(line.from);
+    ranges.push(Decoration.widget({
+      widget: new ListFoldWidget(line.from, isCollapsed),
+      side: -1
+    }).range(line.from));
+    if (!isCollapsed) {
+      continue;
+    }
+
+    for (let childNumber = lineNumber + 1; childNumber <= state.doc.lines; childNumber += 1) {
+      const childLine = state.doc.line(childNumber);
+      const child = parseMarkdownListItem(childLine.text);
+      if (!child || child.indent <= item.indent) {
+        break;
+      }
+      ranges.push(Decoration.line({ class: "daily-flow-cm-folded-line" }).range(childLine.from));
+    }
+  }
+  return {
+    collapsed,
+    decorations: Decoration.set(ranges, true)
+  };
+}
+
+function parseMarkdownListItem(text) {
+  const match = /^(\s*)(?:[-*]\s+(?:\[[ xX]\]\s*)?)/.exec(text);
+  if (!match) {
+    return null;
+  }
+  return { indent: match[1].replace(/\t/g, "    ").length };
+}
+
+class ListFoldWidget extends WidgetType {
+  constructor(position, collapsed) {
+    super();
+    this.position = position;
+    this.collapsed = collapsed;
+  }
+
+  eq(other) {
+    return other.position === this.position && other.collapsed === this.collapsed;
+  }
+
+  toDOM(view) {
+    const button = document.createElement("button");
+    button.className = "daily-flow-cm-fold-toggle";
+    button.type = "button";
+    button.setAttribute("aria-label", this.collapsed ? "Expand nested items" : "Collapse nested items");
+    button.appendChild(createTickTickIcon(this.collapsed ? "chevron-right" : "chevron-down"));
+    button.addEventListener("mousedown", (event) => event.preventDefault());
+    button.addEventListener("click", () => {
+      view.dispatch({ effects: toggleListFoldEffect.of(this.position) });
+    });
+    return button;
+  }
+
+  ignoreEvent() {
+    return false;
+  }
 }
 
 function buildDailyFlowMarkdownDecorations(view) {

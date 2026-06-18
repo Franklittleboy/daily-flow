@@ -1605,7 +1605,7 @@ var require_dist2 = __commonJS({
             if (oldAddr != null) {
               let oldVal = getAddr(oldState, oldAddr);
               if (this.dependencies.every((dep) => {
-                return dep instanceof Facet ? oldState.facet(dep) === state.facet(dep) : dep instanceof StateField ? oldState.field(dep, false) == state.field(dep, false) : true;
+                return dep instanceof Facet ? oldState.facet(dep) === state.facet(dep) : dep instanceof StateField2 ? oldState.field(dep, false) == state.field(dep, false) : true;
               }) || (multi ? compareArray(newVal = getter(state), oldVal, compare2) : compare2(newVal = getter(state), oldVal))) {
                 state.values[idx] = oldVal;
                 return 0;
@@ -1685,7 +1685,7 @@ var require_dist2 = __commonJS({
       };
     }
     var initField = Facet.define({ static: true });
-    var StateField = class _StateField {
+    var StateField2 = class _StateField {
       constructor(id, createF, updateF, compareF, spec) {
         this.id = id;
         this.createF = createF;
@@ -1846,7 +1846,7 @@ var require_dist2 = __commonJS({
         let facets = /* @__PURE__ */ Object.create(null);
         let newCompartments = /* @__PURE__ */ new Map();
         for (let ext of flatten(base, compartments, newCompartments)) {
-          if (ext instanceof StateField)
+          if (ext instanceof StateField2)
             fields.push(ext);
           else
             (facets[ext.facet.id] || (facets[ext.facet.id] = [])).push(ext);
@@ -1917,7 +1917,7 @@ var require_dist2 = __commonJS({
           inner(content, prec2);
         } else if (ext instanceof PrecExtension) {
           inner(ext.inner, ext.prec);
-        } else if (ext instanceof StateField) {
+        } else if (ext instanceof StateField2) {
           result[prec2].push(ext);
           if (ext.provides)
             inner(ext.provides, prec2);
@@ -2001,10 +2001,10 @@ var require_dist2 = __commonJS({
       type.
       */
       of(value) {
-        return new StateEffect(this, value);
+        return new StateEffect2(this, value);
       }
     };
-    var StateEffect = class _StateEffect {
+    var StateEffect2 = class _StateEffect {
       /**
       @internal
       */
@@ -2052,8 +2052,8 @@ var require_dist2 = __commonJS({
         return result;
       }
     };
-    StateEffect.reconfigure = StateEffect.define();
-    StateEffect.appendConfig = StateEffect.define();
+    StateEffect2.reconfigure = StateEffect2.define();
+    StateEffect2.appendConfig = StateEffect2.define();
     var Transaction = class _Transaction {
       constructor(startState, changes, selection, effects, annotations, scrollIntoView) {
         this.startState = startState;
@@ -2179,7 +2179,7 @@ var require_dist2 = __commonJS({
       return {
         changes,
         selection: b.selection ? b.selection.map(mapForB) : (_a = a.selection) === null || _a === void 0 ? void 0 : _a.map(mapForA),
-        effects: StateEffect.mapEffects(a.effects, mapForA).concat(StateEffect.mapEffects(b.effects, mapForB)),
+        effects: StateEffect2.mapEffects(a.effects, mapForA).concat(StateEffect2.mapEffects(b.effects, mapForB)),
         annotations: a.annotations.length ? a.annotations.concat(b.annotations) : b.annotations,
         scrollIntoView: a.scrollIntoView || b.scrollIntoView
       };
@@ -2231,7 +2231,7 @@ var require_dist2 = __commonJS({
           changes = filtered.changes;
           back = filtered.filtered.mapDesc(filtered.changes).invertedDesc;
         }
-        tr = Transaction.create(state, changes, tr.selection && tr.selection.map(back), StateEffect.mapEffects(tr.effects, back), tr.annotations, tr.scrollIntoView);
+        tr = Transaction.create(state, changes, tr.selection && tr.selection.map(back), StateEffect2.mapEffects(tr.effects, back), tr.annotations, tr.scrollIntoView);
       }
       let filters = state.facet(transactionFilter);
       for (let i = filters.length - 1; i >= 0; i--) {
@@ -2347,10 +2347,10 @@ var require_dist2 = __commonJS({
               conf = null;
             }
             compartments.set(effect.value.compartment, effect.value.extension);
-          } else if (effect.is(StateEffect.reconfigure)) {
+          } else if (effect.is(StateEffect2.reconfigure)) {
             conf = null;
             base = effect.value;
-          } else if (effect.is(StateEffect.appendConfig)) {
+          } else if (effect.is(StateEffect2.appendConfig)) {
             conf = null;
             base = asArray(base).concat(effect.value);
           }
@@ -2402,7 +2402,7 @@ var require_dist2 = __commonJS({
           let mapBy = changes.mapDesc(newChanges, true);
           ranges.push(result.range.map(mapBy));
           changes = changes.compose(newMapped);
-          effects = StateEffect.mapEffects(effects, newMapped).concat(StateEffect.mapEffects(asArray(result.effects), mapBy));
+          effects = StateEffect2.mapEffects(effects, newMapped).concat(StateEffect2.mapEffects(asArray(result.effects), mapBy));
         }
         return {
           changes,
@@ -2458,7 +2458,7 @@ var require_dist2 = __commonJS({
         if (fields)
           for (let prop in fields) {
             let value = fields[prop];
-            if (value instanceof StateField && this.config.address[value.id] != null)
+            if (value instanceof StateField2 && this.config.address[value.id] != null)
               result[prop] = value.spec.toJSON(this.field(fields[prop]), this);
           }
         return result;
@@ -2628,7 +2628,7 @@ var require_dist2 = __commonJS({
     EditorState2.changeFilter = changeFilter;
     EditorState2.transactionFilter = transactionFilter;
     EditorState2.transactionExtender = transactionExtender;
-    Compartment.reconfigure = StateEffect.define();
+    Compartment.reconfigure = StateEffect2.define();
     function combineConfig(configs, defaults, combine = {}) {
       let result = {};
       for (let config of configs)
@@ -3460,9 +3460,9 @@ var require_dist2 = __commonJS({
     exports2.RangeSetBuilder = RangeSetBuilder2;
     exports2.RangeValue = RangeValue;
     exports2.SelectionRange = SelectionRange;
-    exports2.StateEffect = StateEffect;
+    exports2.StateEffect = StateEffect2;
     exports2.StateEffectType = StateEffectType;
-    exports2.StateField = StateField;
+    exports2.StateField = StateField2;
     exports2.Text = Text;
     exports2.Transaction = Transaction;
     exports2.codePointAt = codePointAt;
@@ -20985,7 +20985,7 @@ var require_dist8 = __commonJS({
       { key: "Alt-A", run: toggleBlockComment },
       { key: "Ctrl-m", mac: "Shift-Alt-m", run: toggleTabFocusMode }
     ].concat(standardKeymap);
-    var indentWithTab = { key: "Tab", run: indentMore, shift: indentLess };
+    var indentWithTab2 = { key: "Tab", run: indentMore, shift: indentLess };
     exports2.addCursorAbove = addCursorAbove;
     exports2.addCursorBelow = addCursorBelow;
     exports2.blockComment = blockComment;
@@ -21040,7 +21040,7 @@ var require_dist8 = __commonJS({
     exports2.indentLess = indentLess;
     exports2.indentMore = indentMore;
     exports2.indentSelection = indentSelection;
-    exports2.indentWithTab = indentWithTab;
+    exports2.indentWithTab = indentWithTab2;
     exports2.insertBlankLine = insertBlankLine;
     exports2.insertNewline = insertNewline;
     exports2.insertNewlineAndIndent = insertNewlineAndIndent;
@@ -30575,9 +30575,9 @@ var require_core = __commonJS({
 
 // src/obsidian-plugin.js
 var { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("obsidian");
-var { history, historyKeymap, defaultKeymap } = require_dist8();
+var { history, historyKeymap, defaultKeymap, indentWithTab } = require_dist8();
 var { markdown } = require_dist18();
-var { EditorState, RangeSetBuilder } = require_dist2();
+var { EditorState, RangeSetBuilder, StateEffect, StateField } = require_dist2();
 var { Decoration, EditorView, ViewPlugin, WidgetType, keymap } = require_dist4();
 var core = require_core();
 var VIEW_TYPE_DAILY_FLOW = "daily-flow-view";
@@ -30671,12 +30671,9 @@ var DailyFlowView = class extends ItemView {
     shell.appendChild(this.renderMiddle());
     const main = createEl("main", "daily-flow-main");
     main.addClass(`is-${this.section}`);
-    main.addEventListener("click", () => {
-      if (this.contextMenuTaskId) {
-        this.contextMenuTaskId = null;
-        this.contextMenuPosition = null;
-        this.render();
-      }
+    main.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      this.dismissTaskMenusForTarget(target);
     });
     shell.appendChild(main);
     if (this.section === "calendar") {
@@ -30735,19 +30732,21 @@ var DailyFlowView = class extends ItemView {
     board.appendChild(navResizer);
     const list = createEl("div", "daily-flow-task-list-pane");
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
+    const listScroll = createEl("div", "daily-flow-task-list-scroll");
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
-      this.renderTaskGroup(list, "Overdue", groups.overdue);
-      this.renderTaskGroup(list, "Today", groups.today);
-      this.renderTaskGroup(list, "Future", groups.future);
-      this.renderTaskGroup(list, "No Date", groups.noDate);
+      this.renderTaskGroup(listScroll, "Overdue", groups.overdue);
+      this.renderTaskGroup(listScroll, "Today", groups.today);
+      this.renderTaskGroup(listScroll, "Future", groups.future);
+      this.renderTaskGroup(listScroll, "No Date", groups.noDate);
     } else {
       const tasks = this.taskFilter === "today" ? core.getTodayTasks(this.plugin.data.tasks) : core.getNextDaysTasks(this.plugin.data.tasks, 7);
-      this.renderTaskGroup(list, label, tasks);
+      this.renderTaskGroup(listScroll, label, tasks);
     }
     if (this.plugin.data.settings.showCompletedTasks) {
-      this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
+      this.renderTaskGroup(listScroll, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
     }
+    list.appendChild(listScroll);
     board.appendChild(list);
     const detailResizer = createEl("div", "daily-flow-task-resizer");
     this.bindTaskListResizer(board, detailResizer);
@@ -31041,6 +31040,24 @@ var DailyFlowView = class extends ItemView {
     });
     container.appendChild(menu);
     this.positionTaskContextMenu(menu);
+  }
+  dismissTaskMenusForTarget(target) {
+    if (!target) {
+      return false;
+    }
+    let dismissed = false;
+    if (this.contextMenuTaskId && !target.closest(".daily-flow-task-context-menu")) {
+      this.contextMenuTaskId = null;
+      this.contextMenuPosition = null;
+      this.containerEl.querySelector(".daily-flow-task-context-menu")?.remove();
+      dismissed = true;
+    }
+    if (this.detailMenuOpen && !target.closest(".daily-flow-detail-menu") && !target.closest(".daily-flow-detail-more")) {
+      this.detailMenuOpen = false;
+      this.containerEl.querySelector(".daily-flow-detail-menu")?.remove();
+      dismissed = true;
+    }
+    return dismissed;
   }
   positionTaskContextMenu(menu) {
     if (!this.contextMenuPosition) {
@@ -31479,7 +31496,9 @@ var DailyFlowView = class extends ItemView {
       if (this.detailDatePickerOpen && target && !target.closest(".daily-flow-detail-date-picker") && !target.closest(".daily-flow-detail-date")) {
         this.detailDatePickerOpen = false;
         this.render();
+        return;
       }
+      this.dismissTaskMenusForTarget(target);
     });
     const header = createEl("div", "daily-flow-detail-header");
     if (task.kind === "note") {
@@ -31501,7 +31520,7 @@ var DailyFlowView = class extends ItemView {
       date.addClass("is-overdue");
     }
     date.addEventListener("click", (event) => {
-      event.stopPropagation();
+      this.dismissTaskMenusForTarget(event.target instanceof Element ? event.target : null);
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
       this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || /* @__PURE__ */ new Date();
@@ -31513,7 +31532,6 @@ var DailyFlowView = class extends ItemView {
     if (this.detailDatePickerOpen) {
       card.appendChild(this.renderDetailDatePicker(task));
     }
-    const content = createEl("div", "daily-flow-detail-content");
     const titleRow = createEl("div", "daily-flow-detail-title-row");
     const title = createEl("input", "daily-flow-detail-title");
     title.type = "text";
@@ -31538,7 +31556,8 @@ var DailyFlowView = class extends ItemView {
       }
     });
     titleRow.appendChild(title);
-    content.appendChild(titleRow);
+    card.appendChild(titleRow);
+    const content = createEl("div", "daily-flow-detail-content");
     content.appendChild(this.renderTaskMarkdownBody(task));
     content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
     card.appendChild(content);
@@ -32223,7 +32242,8 @@ function createDailyFlowMarkdownEditor(parent, markdownText, options) {
       extensions: [
         history(),
         markdown(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+        dailyFlowListFolding(),
         dailyFlowMarkdownPreview(),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -32257,6 +32277,98 @@ function dailyFlowMarkdownPreview() {
     decorations: (plugin) => plugin.decorations
   });
 }
+var toggleListFoldEffect = StateEffect.define();
+var listFoldState = StateField.define({
+  create(state) {
+    return createListFoldState(state, /* @__PURE__ */ new Set());
+  },
+  update(value, transaction) {
+    const collapsed = /* @__PURE__ */ new Set();
+    for (const position of value.collapsed) {
+      collapsed.add(transaction.changes.mapPos(position));
+    }
+    for (const effect of transaction.effects) {
+      if (!effect.is(toggleListFoldEffect)) {
+        continue;
+      }
+      if (collapsed.has(effect.value)) {
+        collapsed.delete(effect.value);
+      } else {
+        collapsed.add(effect.value);
+      }
+    }
+    return createListFoldState(transaction.state, collapsed);
+  },
+  provide(field) {
+    return EditorView.decorations.from(field, (value) => value.decorations);
+  }
+});
+function dailyFlowListFolding() {
+  return listFoldState;
+}
+function createListFoldState(state, collapsed) {
+  const ranges = [];
+  for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber += 1) {
+    const line = state.doc.line(lineNumber);
+    const item = parseMarkdownListItem(line.text);
+    const next = lineNumber < state.doc.lines ? parseMarkdownListItem(state.doc.line(lineNumber + 1).text) : null;
+    if (!item || !next || next.indent <= item.indent) {
+      continue;
+    }
+    const isCollapsed = collapsed.has(line.from);
+    ranges.push(Decoration.widget({
+      widget: new ListFoldWidget(line.from, isCollapsed),
+      side: -1
+    }).range(line.from));
+    if (!isCollapsed) {
+      continue;
+    }
+    for (let childNumber = lineNumber + 1; childNumber <= state.doc.lines; childNumber += 1) {
+      const childLine = state.doc.line(childNumber);
+      const child = parseMarkdownListItem(childLine.text);
+      if (!child || child.indent <= item.indent) {
+        break;
+      }
+      ranges.push(Decoration.line({ class: "daily-flow-cm-folded-line" }).range(childLine.from));
+    }
+  }
+  return {
+    collapsed,
+    decorations: Decoration.set(ranges, true)
+  };
+}
+function parseMarkdownListItem(text) {
+  const match = /^(\s*)(?:[-*]\s+(?:\[[ xX]\]\s*)?)/.exec(text);
+  if (!match) {
+    return null;
+  }
+  return { indent: match[1].replace(/\t/g, "    ").length };
+}
+var ListFoldWidget = class extends WidgetType {
+  constructor(position, collapsed) {
+    super();
+    this.position = position;
+    this.collapsed = collapsed;
+  }
+  eq(other) {
+    return other.position === this.position && other.collapsed === this.collapsed;
+  }
+  toDOM(view) {
+    const button = document.createElement("button");
+    button.className = "daily-flow-cm-fold-toggle";
+    button.type = "button";
+    button.setAttribute("aria-label", this.collapsed ? "Expand nested items" : "Collapse nested items");
+    button.appendChild(createTickTickIcon(this.collapsed ? "chevron-right" : "chevron-down"));
+    button.addEventListener("mousedown", (event) => event.preventDefault());
+    button.addEventListener("click", () => {
+      view.dispatch({ effects: toggleListFoldEffect.of(this.position) });
+    });
+    return button;
+  }
+  ignoreEvent() {
+    return false;
+  }
+};
 function buildDailyFlowMarkdownDecorations(view) {
   const builder = new RangeSetBuilder();
   for (const { from, to } of view.visibleRanges) {
