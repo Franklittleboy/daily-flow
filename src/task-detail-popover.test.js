@@ -110,3 +110,24 @@ test("task rows match TickTick content and overdue indicators", () => {
   assert.match(styles, /\.daily-flow-task-date\.is-overdue\s*\{[^}]*color:\s*#ef4444/s);
   assert.match(styles, /\.daily-flow-task-row\s*\{[^}]*align-items:\s*center/s);
 });
+
+test("task groups and task titles align to the left edge", () => {
+  assert.match(styles, /\.daily-flow-task-group-toggle\s*\{[^}]*justify-content:\s*flex-start/s);
+  assert.match(styles, /\.daily-flow-task-body\s*\{[^}]*justify-content:\s*flex-start/s);
+  assert.match(styles, /\.daily-flow-task-title\s*\{[^}]*text-align:\s*left/s);
+});
+
+test("selected tasks use one TickTick-like surface with an inline title editor", () => {
+  assert.match(source, /renderInlineTaskTitle\(task\)/);
+  assert.match(source, /daily-flow-task-title-input/);
+  assert.match(source, /core\.updateTask\(this\.plugin\.data, task\.id, \{ title: nextTitle \}\)/);
+  assert.match(styles, /\.daily-flow-task-row\.is-selected\s*\{[^}]*background:\s*var\(--daily-flow-soft\)/s);
+  assert.match(styles, /\.daily-flow-task-row\.is-selected \.daily-flow-task-body/s);
+  assert.match(styles, /\.daily-flow-task-title-input\s*\{[^}]*background:\s*transparent/s);
+});
+
+test("tasks with child content use the dedicated TickTick-like marker", () => {
+  assert.match(source, /createTickTickIcon\("task-content"\)/);
+  assert.match(source, /"task-content":\s*'<svg/);
+  assert.match(styles, /\.daily-flow-task-content-check\s*\{[^}]*border:\s*0/s);
+});

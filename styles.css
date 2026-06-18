@@ -588,6 +588,7 @@
 .daily-flow-task-group-toggle {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 5px;
   width: 100%;
   min-height: 32px;
@@ -641,6 +642,21 @@
   background: var(--daily-flow-soft);
 }
 
+.daily-flow-task-row.is-selected .daily-flow-task-body,
+.daily-flow-task-row.is-selected .daily-flow-task-date,
+.daily-flow-task-row.is-selected .daily-flow-icon-button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.daily-flow-task-row.is-selected .daily-flow-task-body:hover,
+.daily-flow-task-row.is-selected .daily-flow-task-date:hover,
+.daily-flow-task-row.is-selected .daily-flow-icon-button:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
 .daily-flow-check {
   justify-self: center;
   align-self: center;
@@ -653,29 +669,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--text-muted);
-  border-radius: 4px;
-  padding: 1px;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 0;
   color: var(--text-muted);
   background: transparent;
 }
 
 .daily-flow-task-content-check:hover {
   color: var(--daily-flow-accent);
-  border-color: var(--daily-flow-accent);
-  background: var(--daily-flow-accent-soft);
+  background: transparent;
 }
 
 .daily-flow-task-content-check .daily-flow-ticktick-icon {
-  width: 13px;
-  height: 13px;
+  width: 20px;
+  height: 20px;
 }
 
 .daily-flow-task-body {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   min-width: 0;
   min-height: 48px;
   padding: 0;
@@ -691,6 +706,30 @@
   white-space: normal;
   font-size: 15px;
   line-height: 1.25;
+  text-align: left;
+}
+
+.daily-flow-task-title-input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--text-normal);
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.daily-flow-task-title-input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
 }
 
 .daily-flow-task-date {

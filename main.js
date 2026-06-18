@@ -30973,7 +30973,7 @@ var DailyFlowView = class extends ItemView {
       checkbox.setAttribute("role", "checkbox");
       checkbox.setAttribute("aria-checked", "false");
       checkbox.setAttribute("aria-label", "\u5B8C\u6210\u4EFB\u52A1");
-      checkbox.appendChild(createTickTickIcon("file-text"));
+      checkbox.appendChild(createTickTickIcon("task-content"));
       checkbox.addEventListener("click", async () => {
         await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, true));
         this.render();
@@ -30987,12 +30987,17 @@ var DailyFlowView = class extends ItemView {
         this.render();
       });
     }
-    const body = createEl("button", "daily-flow-task-body");
-    body.appendChild(createEl("span", "daily-flow-task-title", task.title));
-    if (task.note) {
-      body.setAttribute("title", task.note);
+    let body;
+    if (task.id === this.activeTaskDetailId) {
+      body = this.renderInlineTaskTitle(task);
+    } else {
+      body = createEl("button", "daily-flow-task-body");
+      body.appendChild(createEl("span", "daily-flow-task-title", task.title));
+      if (task.note) {
+        body.setAttribute("title", task.note);
+      }
+      body.addEventListener("click", () => this.openTaskDetail(task));
     }
-    body.addEventListener("click", () => this.openTaskDetail(task));
     const overdueDays = this.taskOverdueDays(task);
     const date = createEl("button", "daily-flow-task-date", this.taskDateLabel(task));
     if (overdueDays) {
@@ -31013,6 +31018,33 @@ var DailyFlowView = class extends ItemView {
     row.appendChild(date);
     row.appendChild(timer);
     return row;
+  }
+  renderInlineTaskTitle(task) {
+    const input = createEl("input", "daily-flow-task-title-input");
+    input.type = "text";
+    input.value = task.title;
+    let canceled = false;
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        input.blur();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        canceled = true;
+        input.value = task.title;
+        input.blur();
+      }
+    });
+    input.addEventListener("blur", async () => {
+      const nextTitle = canceled ? task.title : input.value.trim();
+      if (!nextTitle || nextTitle === task.title) {
+        input.value = task.title;
+        return;
+      }
+      await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { title: nextTitle }));
+      this.render();
+    });
+    return input;
   }
   openTaskContextMenu(task, event) {
     event.preventDefault();
@@ -32229,6 +32261,7 @@ var TICKTICK_ICONS = {
   link: '<svg viewBox="0 0 24 24"><path d="M9.5 14.5 14.5 9.5"></path><path d="M8 11a4 4 0 0 1 0-6l1-1a4 4 0 0 1 6 6l-1 1"></path><path d="M10 13l-1 1a4 4 0 0 0 6 6l1-1a4 4 0 0 0 0-6"></path></svg>',
   "sticky-note": '<svg viewBox="0 0 24 24"><path d="M6 4h12v11l-5 5H6z"></path><path d="M13 20v-5h5"></path></svg>',
   "file-text": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path></svg>',
+  "task-content": '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"></rect><path d="M7.5 8h1M11 8h5.5M7.5 12h1M11 12h5.5M7.5 16h1M11 16h5.5"></path></svg>',
   "chevron-down": '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>',
   "chevron-right": '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg>'
 };
