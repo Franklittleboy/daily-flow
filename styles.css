@@ -1040,6 +1040,7 @@
 .daily-flow-detail-md-body .cm-content {
   min-height: min(520px, calc(100vh - 260px));
   padding: 0;
+  padding-left: 24px;
   caret-color: var(--text-normal);
   font-family: var(--font-interface);
   font-size: 16px;
@@ -1048,8 +1049,23 @@
 }
 
 .daily-flow-detail-md-body .cm-line {
+  position: relative;
   padding: 0;
   min-height: 24px;
+}
+
+.daily-flow-cm-list-line {
+  padding-left: calc(var(--daily-flow-list-depth) * 1em);
+}
+
+.daily-flow-cm-list-line.is-nested::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: calc((var(--daily-flow-list-depth) - 0.5) * 1em);
+  border-left: 1px solid var(--daily-flow-line-strong);
+  pointer-events: none;
 }
 
 .daily-flow-detail-md-body .cm-gutters {
@@ -1083,7 +1099,7 @@
   border: 0;
   border-radius: 4px;
   padding: 0;
-  color: var(--text-muted);
+  color: var(--daily-flow-accent);
   background: transparent;
   vertical-align: -3px;
 }

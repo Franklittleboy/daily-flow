@@ -50,3 +50,21 @@ test("task markdown lists support indentation and collapsible nested items", () 
   assert.match(styles, /\.daily-flow-cm-fold-toggle\s*{/);
   assert.match(styles, /\.daily-flow-cm-folded-line\s*{[^}]*display:\s*none/s);
 });
+
+test("nested markdown items show TickTick-like depth guides and keep the parent visible", () => {
+  assert.match(source, /getMarkdownListDepth\(indent\)/);
+  assert.match(source, /daily-flow-cm-list-line/);
+  assert.match(source, /--daily-flow-list-depth/);
+  assert.match(source, /childLine\.from/);
+  assert.match(styles, /\.daily-flow-cm-list-line\s*{[^}]*padding-left:\s*calc\(var\(--daily-flow-list-depth\) \* 1em\)/s);
+  assert.match(styles, /\.daily-flow-cm-list-line\.is-nested::before\s*{[^}]*border-left:/s);
+  assert.match(styles, /\.daily-flow-detail-md-body \.cm-content\s*{[^}]*padding-left:\s*24px/s);
+});
+
+test("task list scroll position survives task detail rerenders", () => {
+  assert.match(source, /this\.taskListScrollPositions = new Map\(\)/);
+  assert.match(source, /this\.rememberTaskListScrollPosition\(\)/);
+  assert.match(source, /listScroll\.dataset\.filter = this\.taskFilter/);
+  assert.match(source, /listScroll\.scrollTop = this\.taskListScrollPositions\.get\(this\.taskFilter\) \|\| 0/);
+  assert.match(source, /this\.taskListScrollPositions\.set\(filter, listScroll\.scrollTop\)/);
+});

@@ -30633,6 +30633,7 @@ var DailyFlowView = class extends ItemView {
     this.contextMenuTaskId = null;
     this.contextMenuPosition = null;
     this.activeMarkdownEditor = null;
+    this.taskListScrollPositions = /* @__PURE__ */ new Map();
     this.focus = {
       taskId: null,
       running: false,
@@ -30662,6 +30663,7 @@ var DailyFlowView = class extends ItemView {
     this.stopFocusInterval();
   }
   render() {
+    this.rememberTaskListScrollPosition();
     this.destroyActiveMarkdownEditor();
     const root = this.containerEl.children[1];
     root.empty();
@@ -30733,6 +30735,8 @@ var DailyFlowView = class extends ItemView {
     const list = createEl("div", "daily-flow-task-list-pane");
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
     const listScroll = createEl("div", "daily-flow-task-list-scroll");
+    listScroll.dataset.filter = this.taskFilter;
+    listScroll.scrollTop = this.taskListScrollPositions.get(this.taskFilter) || 0;
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
       this.renderTaskGroup(listScroll, "Overdue", groups.overdue);
@@ -30753,6 +30757,13 @@ var DailyFlowView = class extends ItemView {
     board.appendChild(detailResizer);
     this.renderTaskDetail(board, "panel");
     main.appendChild(board);
+  }
+  rememberTaskListScrollPosition() {
+    const listScroll = this.containerEl.querySelector(".daily-flow-task-list-scroll");
+    const filter = listScroll?.dataset.filter;
+    if (filter) {
+      this.taskListScrollPositions.set(filter, listScroll.scrollTop);
+    }
   }
   renderTaskSidebar() {
     const sidebar = createEl("aside", "daily-flow-task-sidebar");
@@ -32388,9 +32399,11 @@ function addLineMarkdownDecorations(builder, line) {
   const text = line.text;
   const todo = /^(\s*)-\s+\[([ xX])\]\s?/.exec(text);
   if (todo) {
-    const markerFrom = line.from + todo[1].length;
+    const indent = todo[1];
+    addListLineDecoration(builder, line, getMarkdownListDepth(indent));
+    const markerFrom = line.from;
     const markerTo = line.from + todo[0].length;
-    const checkedAt = markerFrom + 3;
+    const checkedAt = line.from + indent.length + 3;
     builder.add(markerFrom, markerTo, Decoration.replace({
       widget: new TodoCheckboxWidget(todo[2].toLowerCase() === "x", checkedAt),
       inclusive: false
@@ -32400,7 +32413,9 @@ function addLineMarkdownDecorations(builder, line) {
   }
   const bullet = /^(\s*)[-*]\s+/.exec(text);
   if (bullet) {
-    const markerFrom = line.from + bullet[1].length;
+    const indent = bullet[1];
+    addListLineDecoration(builder, line, getMarkdownListDepth(indent));
+    const markerFrom = line.from;
     const markerTo = line.from + bullet[0].length;
     builder.add(markerFrom, markerTo, Decoration.replace({
       widget: new BulletWidget(),
@@ -32420,6 +32435,18 @@ function addLineMarkdownDecorations(builder, line) {
     return;
   }
   addStrikeDecorations(builder, line);
+}
+function addListLineDecoration(builder, line, depth) {
+  builder.add(line.from, line.from, Decoration.line({
+    attributes: {
+      class: depth > 0 ? "daily-flow-cm-list-line is-nested" : "daily-flow-cm-list-line",
+      style: `--daily-flow-list-depth: ${depth}`
+    }
+  }));
+}
+function getMarkdownListDepth(indent) {
+  const width = indent.replace(/\t/g, "  ").length;
+  return width > 0 ? Math.max(1, Math.ceil(width / 2)) : 0;
 }
 function addStrikeDecorations(builder, line) {
   const pattern = /~~([^~]+)~~/g;
