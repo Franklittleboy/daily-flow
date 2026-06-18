@@ -30697,6 +30697,8 @@ var DailyFlowView = class extends ItemView {
       paused: false,
       mode: "pomodoro",
       startedAt: null,
+      pausedAt: null,
+      pausedSeconds: 0,
       elapsedSeconds: 0,
       remainingSeconds: plugin.data.settings.defaultFocusMinutes * 60,
       plannedMinutes: plugin.data.settings.defaultFocusMinutes,
@@ -31316,8 +31318,10 @@ var DailyFlowView = class extends ItemView {
     main.appendChild(this.renderFocusHeader());
     const layout = createEl("div", "daily-flow-focus-layout");
     const timerPane = createEl("section", "daily-flow-focus-timer");
+    const taskBinding = createEl("label", "daily-flow-focus-task-binding");
+    taskBinding.appendChild(createEl("span", "", "\u4E13\u6CE8\u4EFB\u52A1"));
     const taskPicker = createEl("select", "daily-flow-select daily-flow-focus-select");
-    const none = createEl("option", "", "No task");
+    const none = createEl("option", "", "\u81EA\u7531\u4E13\u6CE8");
     none.value = "";
     taskPicker.appendChild(none);
     for (const task of this.plugin.data.tasks.filter((item) => !item.completed)) {
@@ -31328,9 +31332,9 @@ var DailyFlowView = class extends ItemView {
     }
     taskPicker.addEventListener("change", () => {
       this.focus.taskId = taskPicker.value || null;
+      this.render();
     });
-    const focusHint = createEl("button", "daily-flow-focus-link", taskPicker.selectedOptions[0]?.textContent || "\u4E13\u6CE8");
-    focusHint.addEventListener("click", () => taskPicker.focus());
+    taskBinding.appendChild(taskPicker);
     const ring = createEl("div", "daily-flow-focus-ring");
     ring.appendChild(createEl("div", "daily-flow-focus-time", this.currentFocusDisplay()));
     const controls = createEl("div", "daily-flow-focus-controls");
@@ -31342,8 +31346,7 @@ var DailyFlowView = class extends ItemView {
       end.addEventListener("click", () => this.endFocus(false));
       controls.appendChild(end);
     }
-    timerPane.appendChild(taskPicker);
-    timerPane.appendChild(focusHint);
+    timerPane.appendChild(taskBinding);
     timerPane.appendChild(ring);
     timerPane.appendChild(controls);
     const history2 = createEl("aside", "daily-flow-focus-overview");
@@ -32062,6 +32065,8 @@ var DailyFlowView = class extends ItemView {
     this.focus.running = false;
     this.focus.paused = false;
     this.focus.startedAt = null;
+    this.focus.pausedAt = null;
+    this.focus.pausedSeconds = 0;
     this.focus.elapsedSeconds = 0;
     this.focus.plannedMinutes = this.plugin.data.settings.defaultFocusMinutes;
     this.focus.remainingSeconds = this.focus.plannedMinutes * 60;
@@ -32069,15 +32074,23 @@ var DailyFlowView = class extends ItemView {
   toggleFocus() {
     if (!this.focus.running && !this.focus.paused) {
       this.focus.running = true;
+      this.focus.paused = false;
       this.focus.startedAt = /* @__PURE__ */ new Date();
+      this.focus.pausedAt = null;
+      this.focus.pausedSeconds = 0;
       this.startFocusInterval();
     } else if (this.focus.running) {
       this.focus.running = false;
       this.focus.paused = true;
+      this.focus.pausedAt = /* @__PURE__ */ new Date();
       this.stopFocusInterval();
     } else if (this.focus.paused) {
+      if (this.focus.pausedAt) {
+        this.focus.pausedSeconds += Math.max(0, Math.round((Date.now() - this.focus.pausedAt.getTime()) / 1e3));
+      }
       this.focus.running = true;
       this.focus.paused = false;
+      this.focus.pausedAt = null;
       this.startFocusInterval();
     }
     this.render();
@@ -32107,6 +32120,17 @@ var DailyFlowView = class extends ItemView {
       this.focus.intervalId = null;
     }
   }
+  activeFocusSeconds(endedAt) {
+    if (!this.focus.startedAt) {
+      return 0;
+    }
+    if (this.focus.mode === "stopwatch") {
+      return this.focus.elapsedSeconds;
+    }
+    const totalSeconds = Math.max(0, Math.round((endedAt.getTime() - this.focus.startedAt.getTime()) / 1e3));
+    const currentPause = this.focus.pausedAt ? Math.max(0, Math.round((endedAt.getTime() - this.focus.pausedAt.getTime()) / 1e3)) : 0;
+    return Math.max(0, totalSeconds - this.focus.pausedSeconds - currentPause);
+  }
   async endFocus(completed) {
     if (!this.focus.startedAt) {
       this.resetFocusTimer();
@@ -32114,7 +32138,7 @@ var DailyFlowView = class extends ItemView {
       return;
     }
     const endedAt = /* @__PURE__ */ new Date();
-    const elapsedSeconds = Math.max(0, Math.round((endedAt.getTime() - this.focus.startedAt.getTime()) / 1e3));
+    const elapsedSeconds = this.activeFocusSeconds(endedAt);
     const actualMinutes = Math.max(1, Math.round(elapsedSeconds / 60));
     await this.plugin.setDailyData(core.createFocusSession(this.plugin.data, {
       taskId: this.focus.taskId,
