@@ -126,6 +126,14 @@ test("selected tasks use one TickTick-like surface with an inline title editor",
   assert.match(styles, /\.daily-flow-task-title-input\s*\{[^}]*background:\s*transparent/s);
 });
 
+test("inline task title editing focuses at the end without drawing an input box", () => {
+  assert.match(source, /this\.pendingInlineTaskTitleFocusId = task\.id/);
+  assert.match(source, /input\.setSelectionRange\(input\.value\.length, input\.value\.length\)/);
+  assert.match(styles, /\.daily-flow-task-row\.is-selected \.daily-flow-task-title-input\s*\{[^}]*border:\s*0 !important/s);
+  assert.match(styles, /\.daily-flow-task-row\.is-selected \.daily-flow-task-title-input\s*\{[^}]*background:\s*transparent !important/s);
+  assert.match(styles, /\.daily-flow-task-row\.is-selected \.daily-flow-task-title-input\s*\{[^}]*box-shadow:\s*none !important/s);
+});
+
 test("tasks with child content use the dedicated TickTick-like marker", () => {
   assert.match(source, /createTickTickIcon\("task-content"\)/);
   assert.match(source, /"task-content":\s*'<svg/);

@@ -30640,6 +30640,7 @@ var DailyFlowView = class extends ItemView {
     this.contextMenuPosition = null;
     this.activeMarkdownEditor = null;
     this.taskListScrollPositions = /* @__PURE__ */ new Map();
+    this.pendingInlineTaskTitleFocusId = null;
     this.focus = {
       taskId: null,
       running: false,
@@ -31024,6 +31025,13 @@ var DailyFlowView = class extends ItemView {
     input.type = "text";
     input.value = task.title;
     let canceled = false;
+    if (this.pendingInlineTaskTitleFocusId === task.id) {
+      this.pendingInlineTaskTitleFocusId = null;
+      window.requestAnimationFrame(() => {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -31575,6 +31583,9 @@ var DailyFlowView = class extends ItemView {
       return;
     }
     this.activeTaskDetailId = task.id;
+    if (this.section === "tasks") {
+      this.pendingInlineTaskTitleFocusId = task.id;
+    }
     this.detailDatePickerOpen = false;
     this.detailMenuOpen = false;
     this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || /* @__PURE__ */ new Date();
