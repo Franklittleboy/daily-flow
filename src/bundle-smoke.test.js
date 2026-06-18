@@ -19,6 +19,7 @@ test("built plugin bundle loads with an Obsidian API stub", () => {
           setName() { return this; }
           setDesc() { return this; }
           addText() { return this; }
+          addTextArea() { return this; }
           addDropdown() { return this; }
           addToggle() { return this; }
           addButton() { return this; }
