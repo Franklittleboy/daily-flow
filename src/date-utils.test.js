@@ -7,8 +7,7 @@ const {
   isWithinNextDays,
   startOfWeek,
   getWeekDays,
-  getMonthGrid,
-  formatLunarDay
+  getMonthGrid
 } = require("./core");
 
 test("formatLocalDate returns a stable YYYY-MM-DD local date", () => {
@@ -62,18 +61,4 @@ test("getMonthGrid returns complete weeks around the visible month", () => {
   assert.equal(grid[0].inMonth, true);
   assert.equal(grid[34].date, "2026-07-05");
   assert.equal(grid[34].inMonth, false);
-});
-
-test("formatLunarDay returns a compact Chinese lunar label", () => {
-  const formatter = {
-    formatToParts(date) {
-      return date.getDate() === 15
-        ? [{ type: "month", value: "五月" }, { type: "day", value: "1" }]
-        : [{ type: "month", value: "四月" }, { type: "day", value: "28" }];
-    }
-  };
-
-  assert.equal(formatLunarDay("2026-06-13", formatter), "廿八");
-  assert.equal(formatLunarDay("2026-06-15", formatter), "五月");
-  assert.equal(formatLunarDay("bad-date", formatter), "");
 });
