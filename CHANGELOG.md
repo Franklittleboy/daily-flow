@@ -1,12 +1,46 @@
 # Changelog
 
-## 0.1.10 - 2026-06-13
+## 0.5.0 - 2026-06-17
 
-Draft local focus page redesign.
+任务详情 Markdown 编辑器与任务侧栏更新。
+
+- 合并 `feature/task-detail-popover` 的最新任务详情体验，新增任务侧栏、任务列表右键菜单和可用的日期快捷操作。
+- 任务详情正文改为 Markdown 风格编辑，支持普通文本、无序列表、`- [ ]` 待办、分割线和删除线。
+- 使用 CodeMirror 构建任务详情正文编辑器，改善中文输入法编辑稳定性。
+- 添加 DailyFlow 自有 slash 菜单，支持插入待办、列表、分割线和删除线，并允许在设置里配置命令。
+- 优化标题、日期、正文、任务行和图片预览交互，继续向 TickTick 视觉和操作靠近。
+
+## 0.4.0 - 2026-06-16
+
+任务详情侧栏与图片预览更新。
+
+- 合并任务详情最新改进，任务列表页支持右侧详情面板，日历页继续使用匹配的浮层详情卡片。
+- 任务列表和详情面板之间新增可拖动分隔条，并持久保存任务列表宽度。
+- 图片附件现在可在任务详情中直接预览，并可打开插件内缩放查看器。
+- 优化详情面板的标题、备注、子任务、附件、底部工具和逾期日期样式，减少多余边框和输入框痕迹。
+- 发布整理以 `feature/task-detail-popover` 最新视图为准，保留窄图标导航栏和任务详情侧栏布局。
+
+## 0.3.0 - 2026-06-15
+
+任务详情与本地预览工作流更新。
+
+- 优化 TickTick 风格的新任务卡片和日历任务详情卡片，支持标题、备注、日期、完成状态和子任务编辑。
+- 添加本地附件记录、三点操作菜单、开始专注绑定，以及转换为笔记式详情视图的入口。
+- 新建任务流程改用 DailyFlow 自己的日历浮层卡片，不再使用 Obsidian 默认弹窗。
+- 将新任务卡片和已有任务详情卡片控制在更紧凑的日历预览尺寸，减少遮挡。
+- 新增 combined local preview 工作流，用于把多个功能分支合成后测试、打包并复制到 Obsidian 预览。
+
+## 0.2.0 - 2026-06-14
+
+TickTick-like workspace polish.
 
 - Removed the middle icon rail so navigation only appears in the right sidebar.
 - Reworked the focus page toward TickTick's pomodoro layout with mode tabs, a large central timer, overview cards, and focus history.
+- Added visible focus task binding from the pomodoro page and excluded paused time from saved focus-session duration.
 - Added stopwatch mode while preserving the existing pomodoro countdown flow.
+- Refined month and week calendar density, spacing, and task bar alignment for denser daily schedules.
+- Added faint Chinese lunar dates in month cells when supported by the runtime.
+- Reworked week view with a week/day header, all-day task area, draggable divider, and a scrollable 0-24 time grid that defaults to 8 AM.
 
 ## 0.1.9 - 2026-06-12
 
