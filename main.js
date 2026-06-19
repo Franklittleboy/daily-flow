@@ -1605,7 +1605,7 @@ var require_dist2 = __commonJS({
             if (oldAddr != null) {
               let oldVal = getAddr(oldState, oldAddr);
               if (this.dependencies.every((dep) => {
-                return dep instanceof Facet ? oldState.facet(dep) === state.facet(dep) : dep instanceof StateField ? oldState.field(dep, false) == state.field(dep, false) : true;
+                return dep instanceof Facet ? oldState.facet(dep) === state.facet(dep) : dep instanceof StateField2 ? oldState.field(dep, false) == state.field(dep, false) : true;
               }) || (multi ? compareArray(newVal = getter(state), oldVal, compare2) : compare2(newVal = getter(state), oldVal))) {
                 state.values[idx] = oldVal;
                 return 0;
@@ -1685,7 +1685,7 @@ var require_dist2 = __commonJS({
       };
     }
     var initField = Facet.define({ static: true });
-    var StateField = class _StateField {
+    var StateField2 = class _StateField {
       constructor(id, createF, updateF, compareF, spec) {
         this.id = id;
         this.createF = createF;
@@ -1846,7 +1846,7 @@ var require_dist2 = __commonJS({
         let facets = /* @__PURE__ */ Object.create(null);
         let newCompartments = /* @__PURE__ */ new Map();
         for (let ext of flatten(base, compartments, newCompartments)) {
-          if (ext instanceof StateField)
+          if (ext instanceof StateField2)
             fields.push(ext);
           else
             (facets[ext.facet.id] || (facets[ext.facet.id] = [])).push(ext);
@@ -1917,7 +1917,7 @@ var require_dist2 = __commonJS({
           inner(content, prec2);
         } else if (ext instanceof PrecExtension) {
           inner(ext.inner, ext.prec);
-        } else if (ext instanceof StateField) {
+        } else if (ext instanceof StateField2) {
           result[prec2].push(ext);
           if (ext.provides)
             inner(ext.provides, prec2);
@@ -2001,10 +2001,10 @@ var require_dist2 = __commonJS({
       type.
       */
       of(value) {
-        return new StateEffect(this, value);
+        return new StateEffect2(this, value);
       }
     };
-    var StateEffect = class _StateEffect {
+    var StateEffect2 = class _StateEffect {
       /**
       @internal
       */
@@ -2052,8 +2052,8 @@ var require_dist2 = __commonJS({
         return result;
       }
     };
-    StateEffect.reconfigure = StateEffect.define();
-    StateEffect.appendConfig = StateEffect.define();
+    StateEffect2.reconfigure = StateEffect2.define();
+    StateEffect2.appendConfig = StateEffect2.define();
     var Transaction = class _Transaction {
       constructor(startState, changes, selection, effects, annotations, scrollIntoView) {
         this.startState = startState;
@@ -2179,7 +2179,7 @@ var require_dist2 = __commonJS({
       return {
         changes,
         selection: b.selection ? b.selection.map(mapForB) : (_a = a.selection) === null || _a === void 0 ? void 0 : _a.map(mapForA),
-        effects: StateEffect.mapEffects(a.effects, mapForA).concat(StateEffect.mapEffects(b.effects, mapForB)),
+        effects: StateEffect2.mapEffects(a.effects, mapForA).concat(StateEffect2.mapEffects(b.effects, mapForB)),
         annotations: a.annotations.length ? a.annotations.concat(b.annotations) : b.annotations,
         scrollIntoView: a.scrollIntoView || b.scrollIntoView
       };
@@ -2231,7 +2231,7 @@ var require_dist2 = __commonJS({
           changes = filtered.changes;
           back = filtered.filtered.mapDesc(filtered.changes).invertedDesc;
         }
-        tr = Transaction.create(state, changes, tr.selection && tr.selection.map(back), StateEffect.mapEffects(tr.effects, back), tr.annotations, tr.scrollIntoView);
+        tr = Transaction.create(state, changes, tr.selection && tr.selection.map(back), StateEffect2.mapEffects(tr.effects, back), tr.annotations, tr.scrollIntoView);
       }
       let filters = state.facet(transactionFilter);
       for (let i = filters.length - 1; i >= 0; i--) {
@@ -2347,10 +2347,10 @@ var require_dist2 = __commonJS({
               conf = null;
             }
             compartments.set(effect.value.compartment, effect.value.extension);
-          } else if (effect.is(StateEffect.reconfigure)) {
+          } else if (effect.is(StateEffect2.reconfigure)) {
             conf = null;
             base = effect.value;
-          } else if (effect.is(StateEffect.appendConfig)) {
+          } else if (effect.is(StateEffect2.appendConfig)) {
             conf = null;
             base = asArray(base).concat(effect.value);
           }
@@ -2402,7 +2402,7 @@ var require_dist2 = __commonJS({
           let mapBy = changes.mapDesc(newChanges, true);
           ranges.push(result.range.map(mapBy));
           changes = changes.compose(newMapped);
-          effects = StateEffect.mapEffects(effects, newMapped).concat(StateEffect.mapEffects(asArray(result.effects), mapBy));
+          effects = StateEffect2.mapEffects(effects, newMapped).concat(StateEffect2.mapEffects(asArray(result.effects), mapBy));
         }
         return {
           changes,
@@ -2458,7 +2458,7 @@ var require_dist2 = __commonJS({
         if (fields)
           for (let prop in fields) {
             let value = fields[prop];
-            if (value instanceof StateField && this.config.address[value.id] != null)
+            if (value instanceof StateField2 && this.config.address[value.id] != null)
               result[prop] = value.spec.toJSON(this.field(fields[prop]), this);
           }
         return result;
@@ -2628,7 +2628,7 @@ var require_dist2 = __commonJS({
     EditorState2.changeFilter = changeFilter;
     EditorState2.transactionFilter = transactionFilter;
     EditorState2.transactionExtender = transactionExtender;
-    Compartment.reconfigure = StateEffect.define();
+    Compartment.reconfigure = StateEffect2.define();
     function combineConfig(configs, defaults, combine = {}) {
       let result = {};
       for (let config of configs)
@@ -3460,9 +3460,9 @@ var require_dist2 = __commonJS({
     exports2.RangeSetBuilder = RangeSetBuilder2;
     exports2.RangeValue = RangeValue;
     exports2.SelectionRange = SelectionRange;
-    exports2.StateEffect = StateEffect;
+    exports2.StateEffect = StateEffect2;
     exports2.StateEffectType = StateEffectType;
-    exports2.StateField = StateField;
+    exports2.StateField = StateField2;
     exports2.Text = Text;
     exports2.Transaction = Transaction;
     exports2.codePointAt = codePointAt;
@@ -20985,7 +20985,7 @@ var require_dist8 = __commonJS({
       { key: "Alt-A", run: toggleBlockComment },
       { key: "Ctrl-m", mac: "Shift-Alt-m", run: toggleTabFocusMode }
     ].concat(standardKeymap);
-    var indentWithTab = { key: "Tab", run: indentMore, shift: indentLess };
+    var indentWithTab2 = { key: "Tab", run: indentMore, shift: indentLess };
     exports2.addCursorAbove = addCursorAbove;
     exports2.addCursorBelow = addCursorBelow;
     exports2.blockComment = blockComment;
@@ -21040,7 +21040,7 @@ var require_dist8 = __commonJS({
     exports2.indentLess = indentLess;
     exports2.indentMore = indentMore;
     exports2.indentSelection = indentSelection;
-    exports2.indentWithTab = indentWithTab;
+    exports2.indentWithTab = indentWithTab2;
     exports2.insertBlankLine = insertBlankLine;
     exports2.insertNewline = insertNewline;
     exports2.insertNewlineAndIndent = insertNewlineAndIndent;
@@ -30227,6 +30227,7 @@ var require_core = __commonJS({
       showCompletedTasks: false,
       taskListPaneWidth: 540,
       taskNavPaneWidth: 320,
+      collapsedTaskGroups: [],
       slashCommands: DEFAULT_SLASH_COMMANDS
     };
     function pad2(value) {
@@ -30379,6 +30380,7 @@ var require_core = __commonJS({
     function cloneSettings(settings) {
       return {
         ...settings,
+        collapsedTaskGroups: Array.isArray(settings?.collapsedTaskGroups) ? [...settings.collapsedTaskGroups] : [],
         slashCommands: normalizeSlashCommands(settings?.slashCommands)
       };
     }
@@ -30401,6 +30403,9 @@ var require_core = __commonJS({
       }
       if (Number.isFinite(settings.taskNavPaneWidth)) {
         next.taskNavPaneWidth = Math.min(420, Math.max(240, Math.round(settings.taskNavPaneWidth)));
+      }
+      if (Array.isArray(settings.collapsedTaskGroups)) {
+        next.collapsedTaskGroups = [...new Set(settings.collapsedTaskGroups.filter((key) => typeof key === "string" && key))];
       }
       if (Array.isArray(settings.slashCommands)) {
         next.slashCommands = normalizeSlashCommands(settings.slashCommands);
@@ -30560,7 +30565,8 @@ var require_core = __commonJS({
       return tasks.filter((task) => !task.completed);
     }
     function getTodayTasks(tasks, now = /* @__PURE__ */ new Date()) {
-      return sortTasks(incompleteTasks(tasks).filter((task) => isToday(task.dueDate, now)));
+      const today = formatLocalDate(now);
+      return sortTasks(incompleteTasks(tasks).filter((task) => task.dueDate && task.dueDate <= today));
     }
     function getNextDaysTasks(tasks, days, now = /* @__PURE__ */ new Date()) {
       return sortTasks(incompleteTasks(tasks).filter((task) => isWithinNextDays(task.dueDate, days, now)));
@@ -30632,9 +30638,9 @@ var require_core = __commonJS({
 
 // src/obsidian-plugin.js
 var { ItemView, Modal, Notice, Plugin, PluginSettingTab, Setting } = require("obsidian");
-var { history, historyKeymap, defaultKeymap } = require_dist8();
+var { history, historyKeymap, defaultKeymap, indentWithTab } = require_dist8();
 var { markdown } = require_dist18();
-var { EditorState, RangeSetBuilder } = require_dist2();
+var { EditorState, RangeSetBuilder, StateEffect, StateField } = require_dist2();
 var { Decoration, EditorView, ViewPlugin, WidgetType, keymap } = require_dist4();
 var core = require_core();
 var VIEW_TYPE_DAILY_FLOW = "daily-flow-view";
@@ -30691,6 +30697,8 @@ var DailyFlowView = class extends ItemView {
     this.contextMenuTaskId = null;
     this.contextMenuPosition = null;
     this.activeMarkdownEditor = null;
+    this.taskListScrollPositions = /* @__PURE__ */ new Map();
+    this.pendingInlineTaskTitleFocusId = null;
     this.focus = {
       taskId: null,
       running: false,
@@ -30722,6 +30730,7 @@ var DailyFlowView = class extends ItemView {
     this.stopFocusInterval();
   }
   render() {
+    this.rememberTaskListScrollPosition();
     this.destroyActiveMarkdownEditor();
     const root = this.containerEl.children[1];
     root.empty();
@@ -30731,12 +30740,9 @@ var DailyFlowView = class extends ItemView {
     shell.appendChild(this.renderMiddle());
     const main = createEl("main", "daily-flow-main");
     main.addClass(`is-${this.section}`);
-    main.addEventListener("click", () => {
-      if (this.contextMenuTaskId) {
-        this.contextMenuTaskId = null;
-        this.contextMenuPosition = null;
-        this.render();
-      }
+    main.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      this.dismissTaskMenusForTarget(target);
     });
     shell.appendChild(main);
     if (this.section === "calendar") {
@@ -30795,25 +30801,40 @@ var DailyFlowView = class extends ItemView {
     board.appendChild(navResizer);
     const list = createEl("div", "daily-flow-task-list-pane");
     list.appendChild(this.renderHeader(label, () => this.openTaskModal({ dueDate: this.defaultDueDateForFilter() })));
+    const listScroll = createEl("div", "daily-flow-task-list-scroll");
+    listScroll.dataset.filter = this.taskFilter;
+    const listScrollTop = this.taskListScrollPositions.get(this.taskFilter) || 0;
     if (this.taskFilter === "inbox") {
       const groups = core.groupInboxTasks(this.plugin.data.tasks);
-      this.renderTaskGroup(list, "Overdue", groups.overdue);
-      this.renderTaskGroup(list, "Today", groups.today);
-      this.renderTaskGroup(list, "Future", groups.future);
-      this.renderTaskGroup(list, "No Date", groups.noDate);
+      this.renderTaskGroup(listScroll, "overdue", "\u5DF2\u8FC7\u671F", groups.overdue);
+      this.renderTaskGroup(listScroll, "today", "\u4ECA\u5929", groups.today);
+      this.renderTaskGroup(listScroll, "future", "\u672A\u6765", groups.future);
+      this.renderTaskGroup(listScroll, "noDate", "\u65E0\u65E5\u671F", groups.noDate);
+    } else if (this.taskFilter === "today") {
+      const groups = core.groupInboxTasks(this.plugin.data.tasks);
+      this.renderTaskGroup(listScroll, "overdue", "\u5DF2\u8FC7\u671F", groups.overdue);
+      this.renderTaskGroup(listScroll, "today", "\u4ECA\u5929", groups.today);
     } else {
-      const tasks = this.taskFilter === "today" ? core.getTodayTasks(this.plugin.data.tasks) : core.getNextDaysTasks(this.plugin.data.tasks, 7);
-      this.renderTaskGroup(list, label, tasks);
+      this.renderTaskGroup(listScroll, "next7", label, core.getNextDaysTasks(this.plugin.data.tasks, 7));
     }
     if (this.plugin.data.settings.showCompletedTasks) {
-      this.renderTaskGroup(list, "Completed", this.plugin.data.tasks.filter((task) => task.completed));
+      this.renderTaskGroup(listScroll, "completed", "\u5DF2\u5B8C\u6210", this.plugin.data.tasks.filter((task) => task.completed));
     }
+    list.appendChild(listScroll);
     board.appendChild(list);
     const detailResizer = createEl("div", "daily-flow-task-resizer");
     this.bindTaskListResizer(board, detailResizer);
     board.appendChild(detailResizer);
     this.renderTaskDetail(board, "panel");
     main.appendChild(board);
+    listScroll.scrollTop = listScrollTop;
+  }
+  rememberTaskListScrollPosition() {
+    const listScroll = this.containerEl.querySelector(".daily-flow-task-list-scroll");
+    const filter = listScroll?.dataset.filter;
+    if (filter) {
+      this.taskListScrollPositions.set(filter, listScroll.scrollTop);
+    }
   }
   renderTaskSidebar() {
     const sidebar = createEl("aside", "daily-flow-task-sidebar");
@@ -30966,17 +30987,38 @@ var DailyFlowView = class extends ItemView {
     header.appendChild(actions);
     return header;
   }
-  renderTaskGroup(container, title, tasks) {
+  renderTaskGroup(container, key, title, tasks) {
     if (tasks.length === 0 && title !== "Inbox") {
       return;
     }
     const section = createEl("section", "daily-flow-task-group");
-    section.appendChild(createEl("h3", "", `${title} ${tasks.length}`));
-    if (tasks.length === 0) {
+    const groupId = `${this.taskFilter}:${key}`;
+    const collapsedTaskGroups = new Set(this.plugin.data.settings.collapsedTaskGroups);
+    const isCollapsed = collapsedTaskGroups.has(groupId);
+    const toggle = createEl("button", "daily-flow-task-group-toggle");
+    toggle.setAttribute("aria-expanded", String(!isCollapsed));
+    toggle.appendChild(createTickTickIcon(isCollapsed ? "chevron-right" : "chevron-down"));
+    toggle.appendChild(createEl("span", "daily-flow-task-group-title", title));
+    toggle.appendChild(createEl("span", "daily-flow-task-group-count", String(tasks.length)));
+    toggle.addEventListener("click", async () => {
+      if (isCollapsed) {
+        collapsedTaskGroups.delete(groupId);
+      } else {
+        collapsedTaskGroups.add(groupId);
+      }
+      await this.plugin.setDailyData(core.updateSettings(this.plugin.data, {
+        collapsedTaskGroups: [...collapsedTaskGroups]
+      }));
+      this.render();
+    });
+    section.appendChild(toggle);
+    if (!isCollapsed && tasks.length === 0) {
       section.appendChild(createEl("p", "daily-flow-empty", "No tasks yet."));
     }
-    for (const task of tasks) {
-      section.appendChild(this.renderTaskRow(task));
+    if (!isCollapsed) {
+      for (const task of tasks) {
+        section.appendChild(this.renderTaskRow(task));
+      }
     }
     container.appendChild(section);
   }
@@ -30986,20 +31028,44 @@ var DailyFlowView = class extends ItemView {
       row.addClass("is-selected");
     }
     row.addEventListener("contextmenu", (event) => this.openTaskContextMenu(task, event));
-    const checkbox = createEl("input", "daily-flow-check");
-    checkbox.type = "checkbox";
-    checkbox.checked = task.completed;
-    checkbox.addEventListener("change", async () => {
-      await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
-      this.render();
-    });
-    const body = createEl("button", "daily-flow-task-body");
-    body.appendChild(createEl("span", "daily-flow-task-title", task.title));
-    if (task.note) {
-      body.setAttribute("title", task.note);
+    let checkbox;
+    if (!task.completed && this.hasTaskChildContent(task)) {
+      checkbox = createEl("button", "daily-flow-check daily-flow-task-content-check");
+      checkbox.setAttribute("role", "checkbox");
+      checkbox.setAttribute("aria-checked", "false");
+      checkbox.setAttribute("aria-label", "\u5B8C\u6210\u4EFB\u52A1");
+      checkbox.appendChild(createTickTickIcon("task-content"));
+      checkbox.addEventListener("click", async () => {
+        await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, true));
+        this.render();
+      });
+    } else {
+      checkbox = createEl("input", "daily-flow-check");
+      checkbox.type = "checkbox";
+      checkbox.checked = task.completed;
+      checkbox.addEventListener("change", async () => {
+        await this.plugin.setDailyData(core.completeTask(this.plugin.data, task.id, checkbox.checked));
+        this.render();
+      });
     }
-    body.addEventListener("click", () => this.openTaskDetail(task));
+    let body;
+    if (task.id === this.activeTaskDetailId) {
+      body = this.renderInlineTaskTitle(task);
+    } else {
+      body = createEl("button", "daily-flow-task-body");
+      body.appendChild(createEl("span", "daily-flow-task-title", task.title));
+      if (task.note) {
+        body.setAttribute("title", task.note);
+      }
+      body.addEventListener("click", () => this.openTaskDetail(task));
+    }
+    const overdueDays = this.taskOverdueDays(task);
     const date = createEl("button", "daily-flow-task-date", this.taskDateLabel(task));
+    if (overdueDays) {
+      date.addClass("is-overdue");
+    } else if (core.isToday(task.dueDate)) {
+      date.addClass("is-today");
+    }
     date.addEventListener("click", () => this.openTaskDetail(task));
     const timer = createButton("\u25CE", "Focus on task", false);
     timer.addEventListener("click", () => {
@@ -31013,6 +31079,40 @@ var DailyFlowView = class extends ItemView {
     row.appendChild(date);
     row.appendChild(timer);
     return row;
+  }
+  renderInlineTaskTitle(task) {
+    const input = createEl("input", "daily-flow-task-title-input");
+    input.type = "text";
+    input.value = task.title;
+    let canceled = false;
+    if (this.pendingInlineTaskTitleFocusId === task.id) {
+      this.pendingInlineTaskTitleFocusId = null;
+      window.requestAnimationFrame(() => {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        input.blur();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        canceled = true;
+        input.value = task.title;
+        input.blur();
+      }
+    });
+    input.addEventListener("blur", async () => {
+      const nextTitle = canceled ? task.title : input.value.trim();
+      if (!nextTitle || nextTitle === task.title) {
+        input.value = task.title;
+        return;
+      }
+      await this.plugin.setDailyData(core.updateTask(this.plugin.data, task.id, { title: nextTitle }));
+      this.render();
+    });
+    return input;
   }
   openTaskContextMenu(task, event) {
     event.preventDefault();
@@ -31102,6 +31202,24 @@ var DailyFlowView = class extends ItemView {
     container.appendChild(menu);
     this.positionTaskContextMenu(menu);
   }
+  dismissTaskMenusForTarget(target) {
+    if (!target) {
+      return false;
+    }
+    let dismissed = false;
+    if (this.contextMenuTaskId && !target.closest(".daily-flow-task-context-menu")) {
+      this.contextMenuTaskId = null;
+      this.contextMenuPosition = null;
+      this.containerEl.querySelector(".daily-flow-task-context-menu")?.remove();
+      dismissed = true;
+    }
+    if (this.detailMenuOpen && !target.closest(".daily-flow-detail-menu") && !target.closest(".daily-flow-detail-more")) {
+      this.detailMenuOpen = false;
+      this.containerEl.querySelector(".daily-flow-detail-menu")?.remove();
+      dismissed = true;
+    }
+    return dismissed;
+  }
   positionTaskContextMenu(menu) {
     if (!this.contextMenuPosition) {
       return;
@@ -31140,12 +31258,32 @@ var DailyFlowView = class extends ItemView {
   }
   taskDateLabel(task) {
     if (!task.dueDate) {
-      return "No date";
+      return "";
+    }
+    const overdueDays = this.taskOverdueDays(task);
+    if (overdueDays) {
+      return `\u8FC7\u671F ${overdueDays} \u5929`;
     }
     if (core.isToday(task.dueDate)) {
-      return "Today";
+      return "\u4ECA\u5929";
     }
     return task.dueDate.slice(5);
+  }
+  taskOverdueDays(task) {
+    if (!task.dueDate || task.completed) {
+      return 0;
+    }
+    const due = core.parseLocalDate(task.dueDate);
+    const today = core.parseLocalDate(core.formatLocalDate(/* @__PURE__ */ new Date()));
+    if (!due || !today || due >= today) {
+      return 0;
+    }
+    return Math.max(1, Math.round((today.getTime() - due.getTime()) / 864e5));
+  }
+  hasTaskChildContent(task) {
+    return Boolean(
+      task.note?.trim() || task.attachments?.length || task.subtasks?.length
+    );
   }
   renderCalendar(main) {
     const title = this.calendarMode === "month" ? `${this.anchorDate.getFullYear()}-${String(this.anchorDate.getMonth() + 1).padStart(2, "0")}` : `${this.anchorDate.getFullYear()}\u5E74${this.anchorDate.getMonth() + 1}\u6708`;
@@ -31588,6 +31726,9 @@ var DailyFlowView = class extends ItemView {
       return;
     }
     this.activeTaskDetailId = task.id;
+    if (this.section === "tasks") {
+      this.pendingInlineTaskTitleFocusId = task.id;
+    }
     this.detailDatePickerOpen = false;
     this.detailMenuOpen = false;
     this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || /* @__PURE__ */ new Date();
@@ -31622,7 +31763,9 @@ var DailyFlowView = class extends ItemView {
       if (this.detailDatePickerOpen && target && !target.closest(".daily-flow-detail-date-picker") && !target.closest(".daily-flow-detail-date")) {
         this.detailDatePickerOpen = false;
         this.render();
+        return;
       }
+      this.dismissTaskMenusForTarget(target);
     });
     const header = createEl("div", "daily-flow-detail-header");
     if (task.kind === "note") {
@@ -31644,7 +31787,7 @@ var DailyFlowView = class extends ItemView {
       date.addClass("is-overdue");
     }
     date.addEventListener("click", (event) => {
-      event.stopPropagation();
+      this.dismissTaskMenusForTarget(event.target instanceof Element ? event.target : null);
       this.detailDatePickerOpen = !this.detailDatePickerOpen;
       this.detailMenuOpen = false;
       this.detailPickerAnchorDate = core.parseLocalDate(task.dueDate) || this.detailPickerAnchorDate || /* @__PURE__ */ new Date();
@@ -31656,7 +31799,6 @@ var DailyFlowView = class extends ItemView {
     if (this.detailDatePickerOpen) {
       card.appendChild(this.renderDetailDatePicker(task));
     }
-    const content = createEl("div", "daily-flow-detail-content");
     const titleRow = createEl("div", "daily-flow-detail-title-row");
     const title = createEl("input", "daily-flow-detail-title");
     title.type = "text";
@@ -31681,7 +31823,8 @@ var DailyFlowView = class extends ItemView {
       }
     });
     titleRow.appendChild(title);
-    content.appendChild(titleRow);
+    card.appendChild(titleRow);
+    const content = createEl("div", "daily-flow-detail-content");
     content.appendChild(this.renderTaskMarkdownBody(task));
     content.appendChild(renderAttachments(task.attachments, (attachment) => this.openImagePreview(attachment)));
     card.appendChild(content);
@@ -32294,7 +32437,10 @@ var TICKTICK_ICONS = {
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15V6a1 1 0 0 1 1-1h9"></path></svg>',
   link: '<svg viewBox="0 0 24 24"><path d="M9.5 14.5 14.5 9.5"></path><path d="M8 11a4 4 0 0 1 0-6l1-1a4 4 0 0 1 6 6l-1 1"></path><path d="M10 13l-1 1a4 4 0 0 0 6 6l1-1a4 4 0 0 0 0-6"></path></svg>',
   "sticky-note": '<svg viewBox="0 0 24 24"><path d="M6 4h12v11l-5 5H6z"></path><path d="M13 20v-5h5"></path></svg>',
-  "file-text": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path></svg>'
+  "file-text": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path></svg>',
+  "task-content": '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"></rect><path d="M7.5 8h1M11 8h5.5M7.5 12h1M11 12h5.5M7.5 16h1M11 16h5.5"></path></svg>',
+  "chevron-down": '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>',
+  "chevron-right": '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg>'
 };
 function createTickTickIcon(name) {
   const icon = createEl("span", "daily-flow-ticktick-icon");
@@ -32389,7 +32535,8 @@ function createDailyFlowMarkdownEditor(parent, markdownText, options) {
       extensions: [
         history(),
         markdown(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+        dailyFlowListFolding(),
         dailyFlowMarkdownPreview(),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -32423,6 +32570,110 @@ function dailyFlowMarkdownPreview() {
     decorations: (plugin) => plugin.decorations
   });
 }
+var toggleListFoldEffect = StateEffect.define();
+var listFoldState = StateField.define({
+  create(state) {
+    return createListFoldState(state, /* @__PURE__ */ new Set());
+  },
+  update(value, transaction) {
+    const collapsed = /* @__PURE__ */ new Set();
+    for (const position of value.collapsed) {
+      collapsed.add(transaction.changes.mapPos(position));
+    }
+    for (const effect of transaction.effects) {
+      if (!effect.is(toggleListFoldEffect)) {
+        continue;
+      }
+      if (collapsed.has(effect.value)) {
+        collapsed.delete(effect.value);
+      } else {
+        collapsed.add(effect.value);
+      }
+    }
+    return createListFoldState(transaction.state, collapsed);
+  },
+  provide(field) {
+    return EditorView.decorations.from(field, (value) => value.decorations);
+  }
+});
+function dailyFlowListFolding() {
+  return listFoldState;
+}
+function createListFoldState(state, collapsed) {
+  const ranges = [];
+  for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber += 1) {
+    const line = state.doc.line(lineNumber);
+    const item = parseMarkdownListItem(line.text);
+    const next = lineNumber < state.doc.lines ? parseMarkdownListItem(state.doc.line(lineNumber + 1).text) : null;
+    if (!item || !next || next.indent <= item.indent) {
+      continue;
+    }
+    const isCollapsed = collapsed.has(line.from);
+    ranges.push(Decoration.widget({
+      widget: new ListFoldWidget(line.from, isCollapsed),
+      side: -1
+    }).range(line.from));
+    if (!isCollapsed) {
+      continue;
+    }
+    ranges.push(Decoration.widget({
+      widget: new ListFoldSummaryWidget(),
+      side: 1
+    }).range(line.to));
+    for (let childNumber = lineNumber + 1; childNumber <= state.doc.lines; childNumber += 1) {
+      const childLine = state.doc.line(childNumber);
+      const child = parseMarkdownListItem(childLine.text);
+      if (!child || child.indent <= item.indent) {
+        break;
+      }
+      ranges.push(Decoration.line({ class: "daily-flow-cm-folded-line" }).range(childLine.from));
+    }
+  }
+  return {
+    collapsed,
+    decorations: Decoration.set(ranges, true)
+  };
+}
+function parseMarkdownListItem(text) {
+  const match = /^(\s*)(?:[-*]\s+(?:\[[ xX]\]\s*)?)/.exec(text);
+  if (!match) {
+    return null;
+  }
+  return { indent: match[1].replace(/\t/g, "    ").length };
+}
+var ListFoldWidget = class extends WidgetType {
+  constructor(position, collapsed) {
+    super();
+    this.position = position;
+    this.collapsed = collapsed;
+  }
+  eq(other) {
+    return other.position === this.position && other.collapsed === this.collapsed;
+  }
+  toDOM(view) {
+    const button = document.createElement("button");
+    button.className = "daily-flow-cm-fold-toggle";
+    button.type = "button";
+    button.setAttribute("aria-label", this.collapsed ? "Expand nested items" : "Collapse nested items");
+    button.appendChild(createTickTickIcon(this.collapsed ? "chevron-right" : "chevron-down"));
+    button.addEventListener("mousedown", (event) => event.preventDefault());
+    button.addEventListener("click", () => {
+      view.dispatch({ effects: toggleListFoldEffect.of(this.position) });
+    });
+    return button;
+  }
+  ignoreEvent() {
+    return false;
+  }
+};
+var ListFoldSummaryWidget = class extends WidgetType {
+  toDOM() {
+    const summary = document.createElement("span");
+    summary.className = "daily-flow-cm-fold-summary";
+    summary.textContent = "...";
+    return summary;
+  }
+};
 function buildDailyFlowMarkdownDecorations(view) {
   const builder = new RangeSetBuilder();
   for (const { from, to } of view.visibleRanges) {
@@ -32442,9 +32693,11 @@ function addLineMarkdownDecorations(builder, line) {
   const text = line.text;
   const todo = /^(\s*)-\s+\[([ xX])\]\s?/.exec(text);
   if (todo) {
-    const markerFrom = line.from + todo[1].length;
+    const indent = todo[1];
+    addListLineDecoration(builder, line, getMarkdownListDepth(indent));
+    const markerFrom = line.from;
     const markerTo = line.from + todo[0].length;
-    const checkedAt = markerFrom + 3;
+    const checkedAt = line.from + indent.length + 3;
     builder.add(markerFrom, markerTo, Decoration.replace({
       widget: new TodoCheckboxWidget(todo[2].toLowerCase() === "x", checkedAt),
       inclusive: false
@@ -32454,7 +32707,9 @@ function addLineMarkdownDecorations(builder, line) {
   }
   const bullet = /^(\s*)[-*]\s+/.exec(text);
   if (bullet) {
-    const markerFrom = line.from + bullet[1].length;
+    const indent = bullet[1];
+    addListLineDecoration(builder, line, getMarkdownListDepth(indent));
+    const markerFrom = line.from;
     const markerTo = line.from + bullet[0].length;
     builder.add(markerFrom, markerTo, Decoration.replace({
       widget: new BulletWidget(),
@@ -32474,6 +32729,18 @@ function addLineMarkdownDecorations(builder, line) {
     return;
   }
   addStrikeDecorations(builder, line);
+}
+function addListLineDecoration(builder, line, depth) {
+  builder.add(line.from, line.from, Decoration.line({
+    attributes: {
+      class: depth > 0 ? "daily-flow-cm-list-line is-nested" : "daily-flow-cm-list-line",
+      style: `--daily-flow-list-depth: ${depth}`
+    }
+  }));
+}
+function getMarkdownListDepth(indent) {
+  const width = indent.replace(/\t/g, "  ").length;
+  return width > 0 ? Math.max(1, Math.ceil(width / 2)) : 0;
 }
 function addStrikeDecorations(builder, line) {
   const pattern = /~~([^~]+)~~/g;

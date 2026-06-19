@@ -171,9 +171,14 @@
   padding: 22px 30px;
 }
 
+.daily-flow-main.is-tasks {
+  overflow: hidden;
+}
+
 .daily-flow-task-board {
   display: grid;
   grid-template-columns: var(--daily-flow-task-nav-width, 320px) 6px var(--daily-flow-task-list-width, 540px) 6px minmax(0, 1fr);
+  height: 100%;
   min-height: 100%;
   overflow: hidden;
 }
@@ -183,7 +188,7 @@
   flex-direction: column;
   min-width: 0;
   padding: 22px 14px;
-  overflow: hidden auto;
+  overflow: hidden;
   border-right: 0;
 }
 
@@ -250,8 +255,23 @@
 }
 
 .daily-flow-task-list-pane {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  padding: 22px 30px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.daily-flow-task-list-pane > .daily-flow-header {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 22px 30px 18px;
+}
+
+.daily-flow-task-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 30px 22px;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -573,21 +593,54 @@
 }
 
 .daily-flow-task-group {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
-.daily-flow-task-group h3 {
-  margin: 0 0 8px;
-  font-size: 13px;
+.daily-flow-task-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text-normal);
+  background: transparent;
+  text-align: left;
+}
+
+.daily-flow-task-group-toggle:hover {
+  color: var(--text-normal);
+  background: transparent;
+}
+
+.daily-flow-task-group-toggle .daily-flow-ticktick-icon {
+  width: 14px;
+  height: 14px;
   color: var(--text-muted);
 }
 
+.daily-flow-task-group-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.daily-flow-task-group-count {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
 .daily-flow-task-row {
+  position: relative;
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) minmax(74px, auto) 28px;
   align-items: center;
   gap: 12px;
-  min-height: 48px;
+  min-height: 52px;
+  padding-left: 19px;
   border-bottom: 1px solid var(--daily-flow-line);
 }
 
@@ -600,6 +653,21 @@
   background: var(--daily-flow-soft);
 }
 
+.daily-flow-task-row.is-selected .daily-flow-task-body,
+.daily-flow-task-row.is-selected .daily-flow-task-date,
+.daily-flow-task-row.is-selected .daily-flow-icon-button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.daily-flow-task-row.is-selected .daily-flow-task-body:hover,
+.daily-flow-task-row.is-selected .daily-flow-task-date:hover,
+.daily-flow-task-row.is-selected .daily-flow-icon-button:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
 .daily-flow-check {
   justify-self: center;
   align-self: center;
@@ -608,9 +676,32 @@
   margin: 0;
 }
 
+.daily-flow-task-content-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.daily-flow-task-content-check:hover {
+  color: var(--daily-flow-accent);
+  background: transparent;
+}
+
+.daily-flow-task-content-check .daily-flow-ticktick-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .daily-flow-task-body {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   min-width: 0;
   min-height: 48px;
   padding: 0;
@@ -626,6 +717,39 @@
   white-space: normal;
   font-size: 15px;
   line-height: 1.25;
+  text-align: left;
+}
+
+.daily-flow-task-title-input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--text-normal);
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.daily-flow-task-title-input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.daily-flow-task-row.is-selected .daily-flow-task-title-input {
+  appearance: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 .daily-flow-task-date {
@@ -644,6 +768,22 @@
 .daily-flow-task-date:hover {
   color: var(--daily-flow-accent);
   background: var(--daily-flow-accent-soft);
+}
+
+.daily-flow-task-date.is-overdue {
+  color: #ef4444;
+}
+
+.daily-flow-task-date.is-overdue:hover {
+  color: #ef4444;
+}
+
+.daily-flow-task-date.is-today {
+  color: var(--daily-flow-accent);
+}
+
+.daily-flow-task-date.is-today:hover {
+  color: var(--daily-flow-accent);
 }
 
 .daily-flow-empty {
@@ -1089,16 +1229,19 @@
 
 .daily-flow-detail-content {
   flex: 1 1 auto;
-  overflow: auto;
-  padding: 28px 40px 20px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 40px 20px;
 }
 
 .daily-flow-detail-title-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
+  flex: 0 0 auto;
   gap: 0;
-  margin-bottom: 22px;
+  padding: 28px 40px 22px;
 }
 
 .daily-flow-root .daily-flow-detail-title {
@@ -1150,7 +1293,7 @@
   padding: 0;
   color: var(--text-normal);
   background: transparent;
-  overflow: auto;
+  overflow: visible;
 }
 
 .daily-flow-detail-md-body .cm-editor {
@@ -1170,8 +1313,11 @@
 }
 
 .daily-flow-detail-md-body .cm-content {
+  --daily-flow-list-marker-size: 16px;
+  --daily-flow-list-marker-center: calc(var(--daily-flow-list-marker-size) / 2);
   min-height: min(520px, calc(100vh - 260px));
   padding: 0;
+  padding-left: 24px;
   caret-color: var(--text-normal);
   font-family: var(--font-interface);
   font-size: 16px;
@@ -1180,8 +1326,32 @@
 }
 
 .daily-flow-detail-md-body .cm-line {
+  position: relative;
   padding: 0;
   min-height: 24px;
+}
+
+.daily-flow-detail-md-body .cm-line.daily-flow-cm-list-line {
+  padding-left: calc(var(--daily-flow-list-depth) * 1em);
+}
+
+.daily-flow-cm-list-line.is-nested::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--daily-flow-list-depth) * 1em);
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--daily-flow-list-marker-center) - 0.5px),
+    var(--daily-flow-line-strong) calc(var(--daily-flow-list-marker-center) - 0.5px),
+    var(--daily-flow-line-strong) calc(var(--daily-flow-list-marker-center) + 0.5px),
+    transparent calc(var(--daily-flow-list-marker-center) + 0.5px),
+    transparent 1em
+  );
+  pointer-events: none;
 }
 
 .daily-flow-detail-md-body .cm-gutters {
@@ -1201,9 +1371,59 @@
   display: inline-block;
   width: 5px;
   height: 5px;
-  margin: 0 14px 3px 5px;
+  margin: 0 13.5px 3px 5.5px;
   border-radius: 50%;
   background: var(--text-normal);
+}
+
+.daily-flow-cm-fold-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0 4px 0 -22px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease;
+  vertical-align: -3px;
+}
+
+.daily-flow-detail-md-body .cm-line:hover .daily-flow-cm-fold-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.daily-flow-detail-md-body .cm-line:focus-within .daily-flow-cm-fold-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.daily-flow-cm-fold-toggle:hover {
+  background: var(--daily-flow-soft);
+}
+
+.daily-flow-cm-fold-toggle .daily-flow-ticktick-icon,
+.daily-flow-cm-fold-toggle .daily-flow-ticktick-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.daily-flow-cm-fold-summary {
+  display: inline-block;
+  margin-left: 1em;
+  color: var(--text-faint);
+  letter-spacing: 2px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.daily-flow-detail-md-body .cm-line.daily-flow-cm-folded-line {
+  display: none !important;
 }
 
 .daily-flow-cm-divider {
@@ -1355,6 +1575,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
   gap: 12px;
   min-height: 54px;
   margin-top: auto;

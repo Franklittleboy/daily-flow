@@ -25,6 +25,7 @@ test("normalizeData fills missing data with safe defaults", () => {
   assert.equal(data.settings.showCompletedTasks, false);
   assert.equal(data.settings.taskListPaneWidth, 540);
   assert.equal(data.settings.taskNavPaneWidth, 320);
+  assert.deepEqual(data.settings.collapsedTaskGroups, []);
   assert.deepEqual(data.settings.slashCommands, [
     { label: "切换列表/待办事项", insertText: "- [ ] " },
     { label: "插入分割线", insertText: "\n---\n" },
@@ -159,7 +160,7 @@ test("task selectors return today, next days, and inbox groups", () => {
   data = createTask(data, { title: "Far future", dueDate: "2026-06-30" });
   data = completeTask(data, data.tasks[4].id, true);
 
-  assert.deepEqual(getTodayTasks(data.tasks, now).map((task) => task.title), ["Today"]);
+  assert.deepEqual(getTodayTasks(data.tasks, now).map((task) => task.title), ["Overdue", "Today"]);
   assert.deepEqual(getNextDaysTasks(data.tasks, 7, now).map((task) => task.title), ["Today", "Future"]);
 
   const groups = groupInboxTasks(data.tasks, now);
@@ -201,6 +202,7 @@ test("updateSettings merges supported settings", () => {
     defaultFocusMinutes: 45,
     weekStartsOn: "sunday",
     showCompletedTasks: true,
+    collapsedTaskGroups: ["today:overdue", "inbox:noDate"],
     slashCommands: [
       { label: "引用", insertText: "> " },
       { label: "空命令", insertText: "" },
@@ -214,6 +216,7 @@ test("updateSettings merges supported settings", () => {
     showCompletedTasks: true,
     taskListPaneWidth: 540,
     taskNavPaneWidth: 320,
+    collapsedTaskGroups: ["today:overdue", "inbox:noDate"],
     slashCommands: [
       { label: "引用", insertText: "> " },
       { label: "删除线", insertText: "~~文本~~" }
